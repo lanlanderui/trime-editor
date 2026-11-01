@@ -6,8 +6,9 @@
 package com.osfans.trime.editor
 
 import android.content.Context
-import android.content.res.Configuration
+import com.osfans.trime.data.theme.ThemeDirectory
 import com.osfans.trime.data.theme.ThemeLog
+import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.keyboard.KeyboardPreferenceStore
 import com.osfans.trime.ime.keyboard.KeyboardPrefs
 import com.osfans.trime.ime.keyboard.RimeStatus
@@ -37,6 +38,12 @@ object EditorServices {
                 else -> Timber.v(throwable, "%s", message)
             }
         }
+        // 主题目录由用户选：取值函数而不是值，切换目录后下一次读取就换了地方。
+        ThemeDirectory.themeDirFrom { EditorPrefs.themeDir }
+        // 编辑器只认用户目录：没有一份「出厂 shared 目录」可以让主题悄悄回退过去，
+        // 否则用户改的是自己的文件、看到的却是另一份。
+        ThemeDirectory.sharedDir = null
+        ThemeManager.preferenceStore = EditorPrefs
         RimeStatusProvider.status = HeadlessRimeStatus
         KeyboardPrefs.store = EditorKeyboardPreferences
     }
@@ -64,8 +71,12 @@ private object HeadlessRimeStatus : RimeStatus {
 /**
  * 键盘布局的设置项，取输入法出厂默认值。
  *
- * `splitSpacePercent = 0`（不分体）、`expandKeypressArea = false`；横屏判定跟随屏幕方向，
- * 因为预览板的宽度就是当前屏幕的宽度。
+ * `splitSpacePercent = 0`（不分体）、`expandKeypressArea = false`、两个 `hook*` 都是 false。
+ *
+ * 横屏判定同样是**出厂默认** `LandscapeMode.NEVER`，也就是恒为 false。这一条不能想当然地
+ * 按屏幕方向来：`NEVER` 时输入法永远用 `keyboardHeight`（竖屏值），若这里按方向返回 true，
+ * 预览就会取 `keyboardHeightLand`，同一个主题画出来的键盘比真机矮/高一截。真机实测：
+ * 按方向判定得 500px，按 `NEVER` 得 475px，与输入法一致。
  */
 private object EditorKeyboardPreferences : KeyboardPreferenceStore {
     override val splitSpacePercent: Int get() = 0
@@ -76,5 +87,5 @@ private object EditorKeyboardPreferences : KeyboardPreferenceStore {
 
     override val hookShiftSymbol: Boolean get() = false
 
-    override fun isLandscapeMode(context: Context): Boolean = context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    override fun isLandscapeMode(context: Context): Boolean = false
 }

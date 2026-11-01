@@ -1,13 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">同文编辑器</string>
-    <string name="version_line">v%1$s（%2$s）· D0 工程骨架</string>
-    <string name="section_modules">模块接线</string>
-    <string name="module_row">%1$s\n%2$s</string>
-    <string name="module_core">模型 · YAML 文本层 · 布局/工具条/标量读写（纯 JVM）</string>
-    <string name="module_runtime">装载 · 取色 · 预览渲染（与输入法同源）</string>
-    <string name="module_editor">写盘 · 诊断 · 生成</string>
-    <string name="module_ui">工作台与六个编辑页</string>
-    <string name="module_app">入口 · 权限 · 主题目录</string>
-    <string name="d0_note">下一步（D1）：把测试3 的 data/theme 与 ime/keyboard 渲染类搬进 theme-core / theme-runtime，并让测试3 改为依赖本工程的 theme-runtime，确认 608 例单测仍全绿。</string>
+
+    <string name="action_change_dir">更换</string>
+    <string name="action_refresh">刷新</string>
+    <string name="action_pick_dir">选择目录</string>
+    <string name="action_grant">去授权</string>
+
+    <string name="dir_unset">尚未选择主题目录</string>
+
+    <string name="state_no_dir_title">还没有指定主题目录</string>
+    <string name="state_no_dir_body">编辑器读写的是磁盘上的 trime.yaml，需要先告诉它这些文件放在哪个目录。</string>
+
+    <string name="state_no_access_title">需要访问文件的权限</string>
+    <string name="state_no_access_body">编辑器按路径读写主题文件，因此需要「所有文件访问」权限；只给单个文件的授权不够用。</string>
+
+    <string name="state_empty_title">这个目录里没有主题</string>
+    <string name="state_empty_body">主题文件名以 trime.yaml 结尾。选错了目录就换一个；目录确实是空的，可以等到 D4 从模板新建。</string>
+
+    <string name="pick_dir_title">选择主题目录</string>
+    <string name="pick_dir_up">上一级</string>
+    <string name="pick_dir_use">用这个目录</string>
+
+    <string name="preview_load_failed">这个主题读不出来</string>
+    <string name="preview_scheme_follow_system">跟随系统</string>
+    <string name="preview_no_scheme">这个主题没有声明配色</string>
+    <string name="preview_findings">静态检查：%1$d 处需要注意</string>
+    <string name="preview_findings_clean">静态检查通过</string>
+    <string name="preview_findings_unknown">静态检查未运行</string>
 </resources>
