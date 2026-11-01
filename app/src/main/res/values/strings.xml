@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">同文编辑器</string>
+    <string name="version_line">v%1$s（%2$s）· D0 工程骨架</string>
+    <string name="section_modules">模块接线</string>
+    <string name="module_row">%1$s\n%2$s</string>
+    <string name="module_core">模型 · YAML 文本层 · 布局/工具条/标量读写（纯 JVM）</string>
+    <string name="module_runtime">装载 · 取色 · 预览渲染（与输入法同源）</string>
+    <string name="module_editor">写盘 · 诊断 · 生成</string>
+    <string name="module_ui">工作台与六个编辑页</string>
+    <string name="module_app">入口 · 权限 · 主题目录</string>
+    <string name="d0_note">下一步（D1）：把测试3 的 data/theme 与 ime/keyboard 渲染类搬进 theme-core / theme-runtime，并让测试3 改为依赖本工程的 theme-runtime，确认 608 例单测仍全绿。</string>
+</resources>

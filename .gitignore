@@ -1,0 +1,10 @@
+.gradle/
+.gradle-user-home/
+build/
+captures/
+local.properties
+.idea/
+*.iml
+.DS_Store
+.tmp/
+*.hprof
