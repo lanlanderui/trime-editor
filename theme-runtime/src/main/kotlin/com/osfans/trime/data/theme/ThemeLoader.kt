@@ -71,10 +71,22 @@ object ThemeLoader {
          * deploy the theme with either — the editor's situation. Reported
          * instead of guessing a path, so the caller can say why the theme
          * stayed unloaded.
+         *
+         * @param reason the loader's own words for why the source was refused;
+         *   without it the message only says the fallback is missing, which
+         *   tells a user nothing about the file they are looking at.
          */
         class DeployUnavailable(
             themeId: String,
-        ) : ThemeLoadError(themeId, "No librime to deploy the theme with")
+            val reason: String? = null,
+        ) : ThemeLoadError(
+            themeId,
+            if (reason == null) {
+                "No librime to deploy the theme with"
+            } else {
+                "No librime to deploy the theme with, and its source $reason"
+            },
+        )
     }
 
     sealed interface ThemeLoadResult {
@@ -125,7 +137,7 @@ object ThemeLoader {
         // The deployed artifact can go stale as well — the source file it was
         // compiled from may still change — so both are part of the snapshot.
         val tried = sources.snapshot()
-        return when (val deployed = loadDeployedTheme(themeId)) {
+        return when (val deployed = loadDeployedTheme(themeId, reason)) {
             is ThemeLoadResult.Success -> {
                 val merged = deployed.sources?.merge(tried) ?: tried
                 deployed.copy(fallbackReason = reason, sources = merged)
@@ -350,13 +362,25 @@ object ThemeLoader {
         return yamlMapOf(root.pairs + (PATCH to yamlScalarOf("$patchId:/patch?")))
     }
 
-    /** Loads the theme from its librime-deployed artifact. */
-    private fun loadDeployedTheme(themeId: String): ThemeLoadResult {
+    /**
+     * Loads the theme from its librime-deployed artifact.
+     *
+     * @param sourceFailure why the source path was given up on, carried into
+     *   [ThemeLoadError.DeployUnavailable] so the reason survives the very case
+     *   where the fallback is missing.
+     */
+    private fun loadDeployedTheme(
+        themeId: String,
+        sourceFailure: String?,
+    ): ThemeLoadResult {
         // The editor has no librime at all, so there is neither a deploy step
         // nor an artifact to fall back to; say so instead of reading a path
         // that this process cannot even name.
         val deployer = ThemeDirectory.deployer
-            ?: return ThemeLoadResult.Failure(themeId, ThemeLoadError.DeployUnavailable(themeId))
+            ?: return ThemeLoadResult.Failure(
+                themeId,
+                ThemeLoadError.DeployUnavailable(themeId, sourceFailure),
+            )
         // Returns false when the artifact is already up to date (mtime cache), which is fine.
         if (!deployer(themeId, CONFIG_VERSION_KEY)) {
             Timber.w("Failed to deploy theme config file '$themeId.yaml'")
@@ -364,7 +388,10 @@ object ThemeLoader {
 
         val file =
             ThemeDirectory.deployedFile(themeId)
-                ?: return ThemeLoadResult.Failure(themeId, ThemeLoadError.DeployUnavailable(themeId))
+                ?: return ThemeLoadResult.Failure(
+                    themeId,
+                    ThemeLoadError.DeployUnavailable(themeId, sourceFailure),
+                )
         val path = file.absolutePath
         if (!file.exists()) {
             return ThemeLoadResult.Failure(themeId, ThemeLoadError.FileNotFound(themeId, path))
