@@ -14,5 +14,7 @@ class EditorApplication : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        // 共享库的接缝：没有 librime 的那一套实现
+        EditorServices.install()
     }
 }

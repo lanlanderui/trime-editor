@@ -15,8 +15,8 @@ android {
 dependencies {
     api(project(":theme-core"))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.preference)
     implementation(libs.kotlinx.coroutines)
     implementation(libs.splitties.bitflags)
+    implementation(libs.splitties.dimensions)
     implementation(libs.timber)
 }
