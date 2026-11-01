@@ -18,7 +18,7 @@ import java.io.File
  * A miss is not remembered: "no name" usually means the file did not expand, and
  * a later deploy may still provide one.
  */
-internal class ThemeNameCache {
+class ThemeNameCache {
     private class Entry(
         val stamp: Long,
         val size: Long,

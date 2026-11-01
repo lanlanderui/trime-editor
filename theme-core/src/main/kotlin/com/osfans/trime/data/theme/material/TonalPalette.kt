@@ -15,7 +15,7 @@ import kotlin.math.roundToInt
  * lightness steps — while keeping hue and chroma in CAM16, which predicts how
  * saturated a colour looks far better than Lab does.
  */
-internal object Hct {
+object Hct {
     fun hue(argb: Int): Double = Cam16.fromArgb(argb).hue
 
     fun chroma(argb: Int): Double = Cam16.fromArgb(argb).chroma
@@ -118,7 +118,7 @@ internal object Hct {
  * The stops are the ones the schemes reference (10, 20, … 100); asking for a
  * tone in between is allowed and just costs another solve.
  */
-internal class TonalPalette private constructor(
+class TonalPalette private constructor(
     val hue: Double,
     val chroma: Double,
 ) {

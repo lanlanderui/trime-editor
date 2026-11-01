@@ -27,7 +27,7 @@ import kotlin.math.sqrt
  * The constants are the CAT16 matrices and the CIECAM16 surround factors from
  * the reference implementation, not values tuned here.
  */
-internal class ViewingConditions private constructor(
+class ViewingConditions private constructor(
     /** Background induction factor. */
     val n: Double,
     /** Absolute luminance of the white point. */
@@ -121,7 +121,7 @@ internal class ViewingConditions private constructor(
 }
 
 /** One colour as CAM16 sees it: [hue] in degrees, [chroma] and [j] on 0..100. */
-internal class Cam16(
+class Cam16(
     val hue: Double,
     val chroma: Double,
     val j: Double,

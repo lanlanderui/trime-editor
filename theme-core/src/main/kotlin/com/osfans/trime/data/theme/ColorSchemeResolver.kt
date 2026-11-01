@@ -11,7 +11,7 @@ package com.osfans.trime.data.theme
  * selected scheme id, the follow-system-day-night preference and the current
  * night state. Extracted from ColorManager so it is unit-testable.
  */
-internal object ColorSchemeResolver {
+object ColorSchemeResolver {
     private const val DEFAULT_SCHEME = "default"
     private const val LIGHT_SCHEME_KEY = "light_scheme"
     private const val DARK_SCHEME_KEY = "dark_scheme"

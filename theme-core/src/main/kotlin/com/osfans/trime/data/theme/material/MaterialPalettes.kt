@@ -12,7 +12,7 @@ package com.osfans.trime.data.theme.material
  * Names match the platform's own resources (`system_accent1_*` and friends), so
  * the system source and the generated one can be spoken of the same way.
  */
-internal enum class PaletteRole {
+enum class PaletteRole {
     PRIMARY,
     SECONDARY,
     TERTIARY,
@@ -21,7 +21,7 @@ internal enum class PaletteRole {
 }
 
 /** The tone stops the platform publishes: 0, 10, 20 … 100. */
-internal val TONE_STOPS = (0..100 step 10).toList()
+val TONE_STOPS = (0..100 step 10).toList()
 
 /**
  * Five tonal palettes, sampled at any tone a scheme names.
@@ -31,7 +31,7 @@ internal val TONE_STOPS = (0..100 step 10).toList()
  * downstream — the role mapping, the preview, the saved copies — only ever
  * asks for a tone.
  */
-internal class MaterialPalettes(
+class MaterialPalettes(
     private val palettes: Map<PaletteRole, TonalPalette>,
     private val published: Map<PaletteRole, Map<Int, Int>> = emptyMap(),
 ) {

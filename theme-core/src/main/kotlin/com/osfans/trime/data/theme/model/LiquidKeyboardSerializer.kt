@@ -36,7 +36,7 @@ import com.osfans.trime.data.theme.ThemeLog as Timber
  * to decode is skipped with a warning instead of failing the whole theme.
  */
 @OptIn(InternalSerializationApi::class)
-internal object LiquidKeyboardSerializer : KSerializer<LiquidKeyboard> {
+object LiquidKeyboardSerializer : KSerializer<LiquidKeyboard> {
     /** The fixed keys of the section; every other key of the mapping is a keyboard id. */
     private val fixedKeys = setOf("single_width", "key_height", "margin_x", "fixed_key_bar", "keyboards")
 

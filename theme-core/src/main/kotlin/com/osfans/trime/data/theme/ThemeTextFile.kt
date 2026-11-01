@@ -19,7 +19,7 @@ import com.osfans.trime.data.theme.ThemeLog as Timber
  * file that changed outside the app must not be overwritten from a stale
  * editor snapshot.
  */
-internal object ThemeTextFile {
+object ThemeTextFile {
     data class Document(
         /** Exact contents the editor was opened against. */
         val text: String,

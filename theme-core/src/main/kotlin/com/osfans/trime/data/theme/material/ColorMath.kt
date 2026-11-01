@@ -17,7 +17,7 @@ import kotlin.math.pow
  * be checked on the JVM — a wrong constant in these matrices shifts every hue
  * in the keyboard and is invisible in a screenshot.
  */
-internal object ColorMath {
+object ColorMath {
     /** Alpha, red, green, blue of an ARGB int, 0..255. */
     fun alpha(argb: Int): Int = (argb ushr 24) and 0xFF
 

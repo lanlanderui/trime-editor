@@ -85,7 +85,7 @@ enum class ColorKey {
          * when a scheme does not define a key, its chain entry points at the
          * key to try next. The scheme itself is always consulted first.
          */
-        internal val builtinFallbackColors: Map<ColorKey, ColorKey> =
+        val builtinFallbackColors: Map<ColorKey, ColorKey> =
             mapOf(
                 CANDIDATE_TEXT_COLOR to TEXT_COLOR,
                 COMMENT_TEXT_COLOR to CANDIDATE_TEXT_COLOR,

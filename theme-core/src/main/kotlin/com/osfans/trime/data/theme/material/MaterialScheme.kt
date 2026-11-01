@@ -7,7 +7,7 @@
 package com.osfans.trime.data.theme.material
 
 /** One material scheme in both modes, as the theme file spells colours. */
-internal data class MaterialYouColors(
+data class MaterialYouColors(
     val light: Map<String, String>,
     val dark: Map<String, String>,
 ) {
@@ -38,7 +38,7 @@ internal data class MaterialYouColors(
  * 90/30, accents 40/80, and anything that sits *on* a colour takes the far end
  * of the scale so the pair stays legible in both modes.
  */
-internal object MaterialScheme {
+object MaterialScheme {
     /** Fully opaque; only the shadow asks for anything else. */
     private const val OPAQUE = MaterialPalettes.OPAQUE
 

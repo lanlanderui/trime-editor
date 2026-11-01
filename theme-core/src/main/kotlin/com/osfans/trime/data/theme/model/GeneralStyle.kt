@@ -93,7 +93,7 @@ data class GeneralStyle(
          * [com.osfans.trime.data.theme.ThemeDiagnosticsTest] fails when this
          * drifts from the literals below.
          */
-        internal val KNOWN_KEYS: Set<String> =
+        val KNOWN_KEYS: Set<String> =
             setOf(
                 "auto_caps",
                 "background_folder",

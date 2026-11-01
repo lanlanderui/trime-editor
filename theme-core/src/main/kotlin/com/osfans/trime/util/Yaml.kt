@@ -88,7 +88,7 @@ val YamlNode.pairs: Map<String, YamlNode>?
  * The YAML node a kaml decoder carries. Serializers that decide themselves what
  * an empty value means need it, because kaml hands over the node only here.
  */
-internal fun Decoder.yamlNode(): YamlNode = (this as? YamlInput)?.node
+fun Decoder.yamlNode(): YamlNode = (this as? YamlInput)?.node
     ?: throw SerializationException("Expect a YAML decoder")
 
 fun yamlScalarOf(content: String): YamlScalar = YamlScalar(content, YamlPath.root)
