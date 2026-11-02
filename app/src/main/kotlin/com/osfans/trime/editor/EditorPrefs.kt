@@ -29,6 +29,7 @@ object EditorPrefs : ThemePreferenceStore {
     private const val KEY_SELECTED_THEME = "selected_theme"
     private const val KEY_SCHEME = "normal_mode_color"
     private const val KEY_FOLLOW_SYSTEM = "follow_system_day_night"
+    private const val KEY_GUIDE_SEEN = "guide_seen"
 
     private const val DEFAULT_SCHEME = "default"
 
@@ -72,4 +73,15 @@ object EditorPrefs : ThemePreferenceStore {
     override var followSystemDayNight: Boolean
         get() = requirePrefs().getBoolean(KEY_FOLLOW_SYSTEM, false)
         set(value) = requirePrefs().edit().putBoolean(KEY_FOLLOW_SYSTEM, value).apply()
+
+    /**
+     * Whether the three-step introduction has been read.
+     *
+     * Not a `ThemePreferenceStore` member: it says nothing about the theme, only
+     * that this device has seen the explanation once. Kept in the same store
+     * because a second preferences file for one boolean is worse.
+     */
+    var guideSeen: Boolean
+        get() = requirePrefs().getBoolean(KEY_GUIDE_SEEN, false)
+        set(value) = requirePrefs().edit().putBoolean(KEY_GUIDE_SEEN, value).apply()
 }

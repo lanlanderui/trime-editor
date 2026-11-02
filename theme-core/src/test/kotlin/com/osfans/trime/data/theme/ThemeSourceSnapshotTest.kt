@@ -93,4 +93,63 @@ class ThemeSourceSnapshotTest :
                 merged.merge(artifact).files.size shouldBe 2
             }
         }
+
+        Given("a file edited without its stat changing") {
+            // The device's theme directory is a FUSE mount: replacing a file
+            // there keeps the old mtime, and a same-length edit keeps the size.
+            // Nothing about `stat` can then tell the save apart from no save.
+            fun editKeepingStat(
+                target: File,
+                text: String,
+            ) {
+                val before = target.lastModified()
+                target.writeText(text)
+                target.setLastModified(before) shouldBe true
+            }
+
+            Then("the same size and mtime still does not count as unchanged") {
+                val edited = file(sharedDir, "fuse.yaml", "color: 1111\n")
+                val stamp = ThemeFileStamp.of(edited)
+                editKeepingStat(edited, "color: 2222\n")
+                ThemeSourceSnapshot(listOf(stamp)).isCurrent(resolve) shouldBe false
+            }
+
+            Then("rewriting the same bytes leaves it current") {
+                val same = file(sharedDir, "same.yaml", "color: 3333\n")
+                val stamp = ThemeFileStamp.of(same)
+                editKeepingStat(same, "color: 3333\n")
+                ThemeSourceSnapshot(listOf(stamp)).isCurrent(resolve) shouldBe true
+            }
+
+            Then("an edit past the first few kilobytes is still noticed") {
+                // `preset_color_schemes` sits at the end of a 4000-line file, so
+                // a digest taken over a prefix would miss every colour edit.
+                val body = (1..400).joinToString("") { "line $it ................\n" }
+                val big = file(sharedDir, "big.yaml", "${body}color: 1111\n")
+                val stamp = ThemeFileStamp.of(big)
+                editKeepingStat(big, "${body}color: 2222\n")
+                ThemeSourceSnapshot(listOf(stamp)).isCurrent(resolve) shouldBe false
+            }
+        }
+
+        Given("the revision counter next to the theme") {
+            Then("a bumped counter makes the stamp stale even when the file is identical") {
+                val dir = tempDir()
+                val target = file(dir, "rev.yaml", "a: 1\n")
+                val stamp = ThemeFileStamp.of(target)
+                ThemeSourceSnapshot(listOf(stamp)).isCurrent(resolve) shouldBe true
+                ThemeRevision.bump(target) shouldBe 1
+                ThemeSourceSnapshot(listOf(stamp)).isCurrent(resolve) shouldBe false
+            }
+
+            Then("a counter that was already there is recorded, not ignored") {
+                val dir = tempDir()
+                val target = file(dir, "rev2.yaml", "a: 1\n")
+                ThemeRevision.bump(target)
+                ThemeRevision.bump(target)
+                val stamp = ThemeFileStamp.of(target)
+                stamp.revision shouldBe 2
+                ThemeSourceSnapshot(listOf(stamp)).isCurrent(resolve) shouldBe true
+            }
+        }
     })

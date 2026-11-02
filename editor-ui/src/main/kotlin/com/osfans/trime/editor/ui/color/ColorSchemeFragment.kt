@@ -37,6 +37,7 @@ import com.osfans.trime.data.theme.ColorTable
 import com.osfans.trime.data.theme.ThemeSchemeWriter
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.ThemeTextFile
+import com.osfans.trime.editor.ui.DiskBackedEditor
 import com.osfans.trime.editor.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -94,7 +95,9 @@ data class PreviewState(
  * author's comments and line endings survive, and a file that somebody else
  * rewrote is refused rather than clobbered.
  */
-class ColorSchemeFragment : PreferenceFragmentCompat() {
+class ColorSchemeFragment :
+    PreferenceFragmentCompat(),
+    DiskBackedEditor {
     private lateinit var themeId: String
     private lateinit var schemeId: String
     private lateinit var sourceFile: File
@@ -135,6 +138,12 @@ class ColorSchemeFragment : PreferenceFragmentCompat() {
                 isEnabled = false
             },
         )
+    }
+
+    override fun isFileChanged(): Boolean {
+        if (!::sourceFile.isInitialized) return false
+        val current = ThemeTextFile.read(sourceFile)?.text ?: return false
+        return current != expectedText
     }
 
     /** Rebuilds the whole screen from the file as it is now. */
@@ -851,7 +860,7 @@ class ColorSchemeFragment : PreferenceFragmentCompat() {
             .show()
     }
 
-    private fun reloadFromDisk() {
+    override fun reloadFromDisk() {
         rebuild()
         host?.reloadBoard()
         toast(R.string.style_reload_done)

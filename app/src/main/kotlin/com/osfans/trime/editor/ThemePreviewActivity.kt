@@ -76,6 +76,7 @@ class ThemePreviewActivity : AppCompatActivity() {
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         menu.findItem(R.id.action_edit_style)?.isVisible = hasLoaded
         menu.findItem(R.id.action_edit_colors)?.isVisible = hasLoaded
+        menu.findItem(R.id.action_back_to_ime)?.isVisible = InputMethodApp.isInstalled(this)
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -100,6 +101,11 @@ class ThemePreviewActivity : AppCompatActivity() {
 
             R.id.action_edit_colors -> {
                 startActivity(ColorEditorActivity.intent(this, themeId, themeName))
+                return true
+            }
+
+            R.id.action_back_to_ime -> {
+                InputMethodApp.launch(this)
                 return true
             }
         }

@@ -59,6 +59,7 @@ class MainActivity : AppCompatActivity() {
         binding.themes.adapter = adapter
         binding.themes.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
         binding.changeDir.setOnClickListener { chooseDirectory() }
+        FirstRunGuide.showIfFirstRun(this)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -66,12 +67,19 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_back_to_ime)?.isVisible = InputMethodApp.isInstalled(this)
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_refresh) {
-            refresh()
-            return true
+        when (item.itemId) {
+            R.id.action_refresh -> refresh()
+            R.id.action_back_to_ime -> InputMethodApp.launch(this)
+            R.id.action_help -> FirstRunGuide.show(this)
+            else -> return super.onOptionsItemSelected(item)
         }
-        return super.onOptionsItemSelected(item)
+        return true
     }
 
     /** Access can be granted while the app is in the background, so re-check here. */

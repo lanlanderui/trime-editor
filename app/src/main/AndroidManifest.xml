@@ -16,6 +16,16 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
+    <!--
+      「回到输入法」要拿到键盘 app 的启动 Intent。Android 11 起默认看不到别的包，
+      getLaunchIntentForPackage 会对没声明过的包静默返回 null——菜单项于是永远
+      不出现，而且不报错。这两个包是输入法的 release / debug 应用 id。
+    -->
+    <queries>
+        <package android:name="com.osfans.trime03" />
+        <package android:name="com.osfans.trime03.debug" />
+    </queries>
+
     <application
         android:name=".EditorApplication"
         android:allowBackup="false"

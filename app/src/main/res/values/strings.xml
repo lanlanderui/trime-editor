@@ -43,4 +43,15 @@
     <string name="material_you_store_failed">配色已写入主题，但没能记入 dynamic_colors.json</string>
     <string name="material_you_no_file">找不到要写入的主题文件</string>
     <string name="write_failed">写不进主题文件</string>
+
+    <!-- 跨进程协作：文件被输入法改过、以及回到输入法去看效果 -->
+    <string name="action_back_to_ime">回到输入法</string>
+    <string name="action_help">使用帮助</string>
+    <string name="back_to_ime_missing">没找到「同文输入法03」：请先安装并启用输入法，再回来试</string>
+    <string name="editor_stale_title">主题文件已被输入法改过，这里显示的是旧内容</string>
+    <string name="editor_stale_action">重新加载</string>
+
+    <string name="guide_title">三步看到效果</string>
+    <string name="guide_body">1. 选主题 —— 在工作台里点一张卡片，打开它的预览。\n\n2. 改样式或配色 —— 上面的预览板用的是输入法的排版引擎，改一项它就跟着变；写入的是同一份 trime.yaml。\n\n3. 回到输入法 —— 用右上角「回到输入法」切过去，键盘就是改后的样子。输入法不会缓存主题，切回来若看到「主题文件已被输入法改过」，点一下重新加载即可。</string>
+    <string name="guide_ok">知道了</string>
 </resources>

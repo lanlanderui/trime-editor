@@ -22,6 +22,7 @@ import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.ThemeSchemeWriter
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.ThemeTextFile
+import com.osfans.trime.editor.ui.DiskBackedEditor
 import com.osfans.trime.editor.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,11 +50,16 @@ interface StyleEditorHost {
  *
  * Saves are serialised and take the snapshot the rows were built from as their
  * baseline: if the file changed after this screen read it, the save is refused
- * and the user chooses between reloading and overwriting. That baseline is
- * refreshed whenever the screen comes back to the front, so switching apps and
- * returning shows the file as it is now instead of reporting a stale conflict.
+ * and the user chooses between reloading and overwriting.
+ *
+ * A file changed by the other app is *reported* rather than absorbed — see
+ * [isFileChanged]. Adopting the new text silently would leave the rows showing
+ * one value, the board above showing another, and no way to tell which one the
+ * next tap writes.
  */
-class StyleEditorFragment : PreferenceFragmentCompat() {
+class StyleEditorFragment :
+    PreferenceFragmentCompat(),
+    DiskBackedEditor {
     private lateinit var themeId: String
     private lateinit var sourceFile: File
 
@@ -88,6 +94,24 @@ class StyleEditorFragment : PreferenceFragmentCompat() {
         }
         sourceFile = file
         rebuild()
+    }
+
+    override fun isFileChanged(): Boolean {
+        if (!::sourceFile.isInitialized) return false
+        val current = ThemeTextFile.read(sourceFile)?.text ?: return false
+        return current != expectedText
+    }
+
+    /**
+     * Re-reads the file, then redraws both the rows and the keyboard above them.
+     *
+     * The board has to be rebuilt, not repainted: it holds the `Keyboard` the
+     * old file described, and a style value can move keys.
+     */
+    override fun reloadFromDisk() {
+        rebuild()
+        host?.reloadBoard()
+        toast(R.string.style_reload_done)
     }
 
     /** Rebuilds the whole screen from the file as it is now. */
@@ -142,9 +166,7 @@ class StyleEditorFragment : PreferenceFragmentCompat() {
                 title = getString(R.string.style_reload)
                 summary = sourceFile.absolutePath
                 setOnPreferenceClickListener {
-                    rebuild()
-                    host?.reloadBoard()
-                    toast(R.string.style_reload_done)
+                    reloadFromDisk()
                     true
                 }
             },
@@ -282,9 +304,12 @@ class StyleEditorFragment : PreferenceFragmentCompat() {
     override fun onResume() {
         super.onResume()
         if (!::sourceFile.isInitialized) return
-        // Coming back to the screen shows the file as it is now: that both
-        // updates the values and moves the conflict baseline, so a change made
-        // while another app was in front is adopted instead of reported.
+        // A file that moved is left alone: the host puts up its banner, and the
+        // rows on screen stay the ones this form was built from until the user
+        // asks for the new ones. Only a file that is what it was is re-read —
+        // that keeps the undo row honest after a save made from elsewhere in
+        // this app, and costs one read.
+        if (isFileChanged()) return
         val document = ThemeTextFile.read(sourceFile) ?: return
         expectedText = document.text
         styleGroups.forEach { group ->

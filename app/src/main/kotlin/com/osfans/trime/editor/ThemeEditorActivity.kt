@@ -9,6 +9,7 @@ package com.osfans.trime.editor
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.FrameLayout
@@ -20,8 +21,12 @@ import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ThemeLoader.ThemeLoadError
 import com.osfans.trime.data.theme.ThemeLoader.ThemeLoadResult
 import com.osfans.trime.editor.databinding.ActivityThemeEditorBinding
+import com.osfans.trime.editor.ui.DiskBackedEditor
 import com.osfans.trime.editor.ui.preview.ThemeBoard
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 /**
@@ -45,6 +50,9 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
     protected var themeName: String = ""
 
     private var editorAttached = false
+
+    /** The in-flight "did the file move" check; cancelled on pause. */
+    private var staleCheck: Job? = null
 
     /** What this screen edits, shown under the theme name. */
     @get:StringRes
@@ -70,16 +78,82 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
             return
         }
         board = ThemeBoard.attach(binding.boardHost)
+        binding.staleBanner.setOnClickListener { adoptFileFromDisk() }
         loadTheme()
     }
 
+    /**
+     * Takes the file the other app wrote and starts over from it.
+     *
+     * Both halves of the screen are rebuilt: the rows, and the keyboard above
+     * them. The form asks the host to redo the board as part of the reload, so
+     * this is not a second load — a screen that reloaded twice would parse the
+     * same file twice and show the second result.
+     */
+    private fun adoptFileFromDisk() {
+        val editor = currentEditor() ?: return
+        binding.staleBanner.visibility = View.GONE
+        editor.reloadFromDisk()
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
+        when (item.itemId) {
+            android.R.id.home -> {
+                finish()
+                return true
+            }
+
+            R.id.action_back_to_ime -> {
+                InputMethodApp.launch(this)
+                return true
+            }
         }
         return super.onOptionsItemSelected(item)
     }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.editor, menu)
+        return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        // A phone without the keyboard has nothing to go back to; the item
+        // would only ever answer "not installed".
+        menu.findItem(R.id.action_back_to_ime)?.isVisible = InputMethodApp.isInstalled(this)
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    /**
+     * Re-checks the file every time the screen comes back to the front.
+     *
+     * The other app can be the one that wrote the file while this screen was
+     * behind it, and neither the timestamp nor the size is trustworthy there
+     * (a FUSE mount keeps the mtime of a replaced file). So the only sound
+     * answer is to compare the bytes — off the main thread, once per resume.
+     */
+    override fun onResume() {
+        super.onResume()
+        checkFileChanged()
+    }
+
+    override fun onPause() {
+        staleCheck?.cancel()
+        staleCheck = null
+        super.onPause()
+    }
+
+    private fun checkFileChanged() {
+        val editor = currentEditor() ?: return
+        staleCheck?.cancel()
+        staleCheck =
+            lifecycleScope.launch {
+                val changed = withContext(Dispatchers.IO) { editor.isFileChanged() }
+                if (isFinishing || isDestroyed) return@launch
+                binding.staleBanner.visibility = if (changed) View.VISIBLE else View.GONE
+            }
+    }
+
+    private fun currentEditor(): DiskBackedEditor? = supportFragmentManager.findFragmentById(R.id.settings) as? DiskBackedEditor
 
     /**
      * Re-reads the theme and redraws the board.

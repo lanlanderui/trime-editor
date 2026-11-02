@@ -9,4 +9,8 @@
         android:id="@+id/action_edit_colors"
         android:title="@string/action_edit_colors"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_back_to_ime"
+        android:title="@string/action_back_to_ime"
+        app:showAsAction="never" />
 </menu>

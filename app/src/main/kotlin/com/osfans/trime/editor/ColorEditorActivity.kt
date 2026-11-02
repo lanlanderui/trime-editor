@@ -98,6 +98,7 @@ class ColorEditorActivity :
         Configuration.UI_MODE_NIGHT_YES
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        super.onCreateOptionsMenu(menu)
         menuInflater.inflate(R.menu.color_editor, menu)
         return true
     }

@@ -28,6 +28,46 @@
         android:layout_height="1dp"
         android:background="@color/divider" />
 
+    <!--
+      主题文件被输入法改过时出现。放在预览板和表单之间，是因为它同时否定了这两块：
+      上面的键盘是旧文件画的，下面的行也是旧文件的。整条可点，不做小按钮。
+    -->
+    <LinearLayout
+        android:id="@+id/staleBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/stale_fill"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="10dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/staleText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/editor_stale_title"
+            android:textColor="@color/stale_text"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/staleAction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="0dp"
+            android:paddingBottom="4dp"
+            android:text="@string/editor_stale_action"
+            android:textColor="@color/stale_text"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <FrameLayout
         android:id="@+id/settings"
         android:layout_width="match_parent"

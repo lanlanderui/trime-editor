@@ -157,6 +157,10 @@ object ThemeTextFile {
                 runCatching { hook(file) }
                     .onFailure { Timber.w(it, "Cannot mirror saved theme %s", file.name) }
             }
+            // The other app reading this directory cannot see [writeGeneration],
+            // and on a FUSE mount it cannot trust the mtime either; the counter
+            // in `.revision` is what tells it the file changed.
+            ThemeRevision.bump(file)
             writeGeneration++
             WriteOutcome.WRITTEN
         } catch (e: Exception) {

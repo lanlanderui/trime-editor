@@ -302,6 +302,38 @@ object ThemeManager {
         }
     }
 
+    /**
+     * Reloads the active theme if the files it was decoded from changed.
+     *
+     * The editor is a separate app writing the same `trime.yaml`, so "the theme
+     * changed" arrives as a file changing, never as a call. Every screen that
+     * draws the keyboard asks this when it comes to the front; a `true` answer
+     * means the change was applied and the listeners were told, which is what
+     * rebuilds the views.
+     *
+     * Cheap when nothing changed — a `stat` per source file and a hash of each
+     * — and deliberately silent when the staleness probe itself fails: an
+     * unreadable theme is a reload that reports its own error.
+     *
+     * @return whether the theme was reloaded.
+     */
+    suspend fun reloadIfStale(): Boolean {
+        // Nothing loaded yet means nothing cached, and the next normal access
+        // reads the file anyway.
+        if (!::_activeTheme.isInitialized) return false
+        val id = prefs.selectedTheme
+        val stale =
+            withContext(Dispatchers.IO) {
+                synchronized(cacheLock) {
+                    val entry = loadedThemes[id] ?: return@synchronized false
+                    !entry.isCurrent()
+                }
+            }
+        if (!stale) return false
+        selectTheme(id)
+        return true
+    }
+
     // 「同步到设备加密存储」是输入法自己的启动迁移逻辑（它要读 DeviceProtected 的
     // SharedPreferences），编辑器不需要，所以留在宿主侧，共享层不碰 Context。
 }
