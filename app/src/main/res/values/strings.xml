@@ -30,5 +30,17 @@
     <string name="preview_findings_unknown">静态检查未运行</string>
 
     <string name="style_editor_title">键盘样式</string>
+    <string name="color_editor_title">键盘配色</string>
     <string name="action_edit_style">编辑样式</string>
+    <string name="action_edit_colors">编辑配色</string>
+    <string name="action_switch_scheme">切换配色</string>
+    <string name="action_material_you">Material You</string>
+
+    <string name="material_you_light_name">Material You（浅色）</string>
+    <string name="material_you_dark_name">Material You（深色）</string>
+    <string name="material_you_written">已生成 Material You 明暗两套</string>
+    <string name="material_you_stored">配色已记入 dynamic_colors.json</string>
+    <string name="material_you_store_failed">配色已写入主题，但没能记入 dynamic_colors.json</string>
+    <string name="material_you_no_file">找不到要写入的主题文件</string>
+    <string name="write_failed">写不进主题文件</string>
 </resources>

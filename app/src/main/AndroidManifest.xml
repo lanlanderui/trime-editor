@@ -46,6 +46,12 @@
             android:parentActivityName=".ThemePreviewActivity"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".ColorEditorActivity"
+            android:exported="false"
+            android:parentActivityName=".ThemePreviewActivity"
+            android:windowSoftInputMode="adjustResize" />
+
     </application>
 
 </manifest>

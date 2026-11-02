@@ -10,6 +10,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import java.io.File
 
 /**
@@ -115,6 +116,82 @@ class ThemeSchemeWriterTest :
                     file.readText() shouldBe source
                 }
             }
+
+            Then("the section's closing banner is left where the author put it") {
+                val source =
+                    "preset_color_schemes:\n" +
+                        "  day:\n    back_color: 0xffffff\n" +
+                        "  night:\n    back_color: 0x000000\n" +
+                        "#----- 配色结束 -----#\n" +
+                        "foo:\n  bar: 1\n"
+                withTheme(source) { file ->
+                    ThemeSchemeWriter.deleteScheme(file, "night") shouldBe true
+                    // The banner is the author's comment, not the scheme's body:
+                    // taking it would silently delete a line nobody edited.
+                    file.readText() shouldBe
+                        "preset_color_schemes:\n" +
+                        "  day:\n    back_color: 0xffffff\n" +
+                        "#----- 配色结束 -----#\n" +
+                        "foo:\n  bar: 1\n"
+                }
+            }
+        }
+
+        Given("a scheme being created") {
+            Then("it lands inside the section, before the closing banner") {
+                val source =
+                    "preset_color_schemes:\n" +
+                        "  day:\n    back_color: 0xffffff\n" +
+                        "#----- 配色结束 -----#\n" +
+                        "foo:\n  bar: 1\n"
+                withTheme(source) { file ->
+                    val entries = linkedMapOf("name" to "夜间", "back_color" to "0x000000")
+                    ThemeSchemeWriter.setSchemes(file, mapOf("night" to entries), create = true) shouldBe true
+                    // Appending after the banner would put the block outside the
+                    // group a reader sees, and the next edit would not find it.
+                    file.readText() shouldBe
+                        "preset_color_schemes:\n" +
+                        "  day:\n    back_color: 0xffffff\n" +
+                        "\n  night:\n    name: 夜间\n    back_color: 0x000000\n" +
+                        "\n#----- 配色结束 -----#\n" +
+                        "foo:\n  bar: 1\n"
+                }
+            }
+
+            Then("an existing id is patched rather than duplicated") {
+                withTheme { file ->
+                    ThemeSchemeWriter.setSchemes(file, mapOf("ink" to mapOf("back_color" to "0x123456")), create = true) shouldBe true
+                    val text = file.readText()
+                    text.split("  ink:").size shouldBe 2
+                    text.contains("back_color: 0x123456") shouldBe true
+                }
+            }
+
+            Then("creating and deleting it leaves the file exactly as it was") {
+                withTheme { file ->
+                    val before = file.readText()
+                    val entries = linkedMapOf("name" to "副本", "back_color" to "0x111111")
+                    ThemeSchemeWriter.setSchemes(file, mapOf("copy" to entries), create = true) shouldBe true
+                    ThemeSchemeWriter.deleteScheme(file, "copy") shouldBe true
+                    // A round trip that is not a no-op grows a blank line every
+                    // time, and the file the user carries around drifts.
+                    file.readText() shouldBe before
+                }
+            }
+
+            Then("the round trip is a no-op in front of the closing banner too") {
+                val source =
+                    "preset_color_schemes:\n" +
+                        "  day:\n    back_color: 0xffffff\n" +
+                        "#----- 配色结束 -----#\n" +
+                        "foo:\n  bar: 1\n"
+                withTheme(source) { file ->
+                    val entries = linkedMapOf("name" to "副本", "back_color" to "0x111111")
+                    ThemeSchemeWriter.setSchemes(file, mapOf("copy" to entries), create = true) shouldBe true
+                    ThemeSchemeWriter.deleteScheme(file, "copy") shouldBe true
+                    file.readText() shouldBe source
+                }
+            }
         }
 
         Given("a single colour being edited") {
@@ -166,6 +243,52 @@ class ThemeSchemeWriterTest :
             Then("an unreferenced scheme reports nothing") {
                 withTheme(LINKED) { file ->
                     ThemeSchemeWriter.referencingSchemes(file, "auto").shouldBeEmpty()
+                }
+            }
+        }
+
+        Given("a save that carries the editor's baseline") {
+            Then("a file edited elsewhere is a conflict, not a failure") {
+                withTheme { file ->
+                    val shown = file.readText()
+                    file.writeText(shown.replace("0xffffff", "0xeeeeee"))
+
+                    ThemeSchemeWriter.setColorChecked(file, "ink", "back_color", "0xff0000", shown).outcome shouldBe
+                        ThemeTextFile.WriteOutcome.CONFLICT
+                    // Nothing was touched, not even a backup written.
+                    file.readText() shouldBe shown.replace("0xffffff", "0xeeeeee")
+                    ThemeTextFile.hasBackup(file) shouldBe false
+                }
+            }
+
+            Then("the same save without a baseline goes through") {
+                withTheme { file ->
+                    ThemeSchemeWriter.setColorChecked(file, "ink", "back_color", "0xff0000").outcome shouldBe
+                        ThemeTextFile.WriteOutcome.WRITTEN
+                }
+            }
+
+            Then("a missing scheme is a failure, not a conflict") {
+                withTheme { file ->
+                    ThemeSchemeWriter.setColorChecked(file, "nope", "back_color", "0xff0000").outcome shouldBe
+                        ThemeTextFile.WriteOutcome.FAILED
+                }
+            }
+
+            Then("every save hands back the text the next one compares against") {
+                withTheme { file ->
+                    var baseline = file.readText()
+                    // A run of edits is what the editor does; a baseline that is
+                    // not advanced after each one would report a conflict on
+                    // the second save even though nothing outside changed.
+                    repeat(20) { i ->
+                        val result =
+                            ThemeSchemeWriter.setColorChecked(file, "ink", "back_color", "0x0000%02x".format(i), baseline)
+                        result.outcome shouldBe ThemeTextFile.WriteOutcome.WRITTEN
+                        baseline = result.text.orEmpty()
+                    }
+                    file.readText() shouldBe baseline
+                    file.readText() shouldContain "    back_color: 0x000013"
                 }
             }
         }

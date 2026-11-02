@@ -5,4 +5,8 @@
         android:id="@+id/action_edit_style"
         android:title="@string/action_edit_style"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_edit_colors"
+        android:title="@string/action_edit_colors"
+        app:showAsAction="ifRoom" />
 </menu>

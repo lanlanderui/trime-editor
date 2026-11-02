@@ -24,6 +24,19 @@ object ThemeSchemeWriter {
         val displayName: String,
     )
 
+    /**
+     * What a write did, and the text it left behind.
+     *
+     * [text] is handed back so the editor can make it the baseline for the next
+     * save without reading a four-thousand-line theme again — and, more
+     * importantly, so a run of edits never compares against a snapshot it has
+     * already replaced.
+     */
+    data class SaveResult(
+        val outcome: ThemeTextFile.WriteOutcome,
+        val text: String? = null,
+    )
+
     private const val SECTION_KEY = "preset_color_schemes"
     private val SCHEME_LINE = Regex("""^  ([A-Za-z0-9_.\-]+):\s*(?:#.*)?$""")
     private val NAME_LINE = Regex("""^(\s{4})name:(\s*)(.*)$""")
@@ -68,10 +81,19 @@ object ThemeSchemeWriter {
         file: File,
         id: String,
         newName: String,
-    ): Boolean {
-        val document = ThemeTextFile.read(file) ?: return false
+    ): Boolean = renameSchemeChecked(file, id, newName).outcome == ThemeTextFile.WriteOutcome.WRITTEN
+
+    /** [renameScheme] with the reason it did not happen, and a conflict baseline. */
+    fun renameSchemeChecked(
+        file: File,
+        id: String,
+        newName: String,
+        expectedText: String? = null,
+    ): SaveResult {
+        val document = ThemeTextFile.read(file) ?: return failed()
+        stale(file, document, expectedText)?.let { return it }
         val lines = document.lines
-        val bounds = schemeBounds(lines, id) ?: return false
+        val bounds = schemeBounds(lines, id) ?: return failed()
         val value = ThemeStyleWriter.formatScalar(newName)
 
         for (i in bounds) {
@@ -89,23 +111,40 @@ object ThemeSchemeWriter {
     fun deleteScheme(
         file: File,
         id: String,
-    ): Boolean {
-        val document = ThemeTextFile.read(file) ?: return false
-        val lines = document.lines
-        val range = sectionRange(lines, SECTION_KEY) ?: return false
-        val schemes = listSchemes(lines)
-        if (schemes.size <= 1) return false
+    ): Boolean = deleteSchemeChecked(file, id).outcome == ThemeTextFile.WriteOutcome.WRITTEN
 
-        val start = boundsStart(lines, range, id) ?: return false
+    /** [deleteScheme] with the reason it did not happen, and a conflict baseline. */
+    fun deleteSchemeChecked(
+        file: File,
+        id: String,
+        expectedText: String? = null,
+    ): SaveResult {
+        val document = ThemeTextFile.read(file) ?: return failed()
+        stale(file, document, expectedText)?.let { return it }
+        val lines = document.lines
+        val range = sectionRange(lines, SECTION_KEY) ?: return failed()
+        val schemes = listSchemes(lines)
+        if (schemes.size <= 1) return failed()
+
+        val start = boundsStart(lines, range, id) ?: return failed()
         var end = start + 1
-        while (end <= range.last) {
-            val line = lines[end]
-            if (SCHEME_LINE.matches(line)) break
-            end++
+        while (end <= range.last && !SCHEME_LINE.matches(lines[end])) end++
+        // The section's closing banner is not part of the scheme: a scheme ends
+        // where the next one starts, or where the trailing blanks and column-0
+        // comments begin. Without this the last scheme took
+        // `#----- 配色结束 -----#` with it, which is the author's comment.
+        while (end > start + 1 && isSectionTrailer(lines[end - 1])) end--
+        // Take the blank lines the block was followed by as well: leaving them
+        // widens the gap by one line on every create/delete round trip.
+        while (end <= range.last && lines[end].isBlank()) end++
+        // A closing comment hugs the section it closes — that is how the shipped
+        // themes are spaced — so the blank that separated this scheme from the
+        // one above it goes too when the banner is what comes next.
+        var from = start
+        if (lines.getOrNull(end)?.startsWith("#") == true) {
+            while (from > range.first && lines[from - 1].isBlank()) from--
         }
-        // Keep the blank line that separated the scheme from the next one.
-        if (end <= range.last && lines[end].isBlank()) end++
-        lines.subList(start, end).clear()
+        lines.subList(from, end).clear()
         return write(file, document, lines)
     }
 
@@ -133,10 +172,20 @@ object ThemeSchemeWriter {
         id: String,
         key: String,
         value: String,
-    ): Boolean {
-        val document = ThemeTextFile.read(file) ?: return false
+    ): Boolean = setColorChecked(file, id, key, value).outcome == ThemeTextFile.WriteOutcome.WRITTEN
+
+    /** [setColor] with the reason it did not happen, and a conflict baseline. */
+    fun setColorChecked(
+        file: File,
+        id: String,
+        key: String,
+        value: String,
+        expectedText: String? = null,
+    ): SaveResult {
+        val document = ThemeTextFile.read(file) ?: return failed()
+        stale(file, document, expectedText)?.let { return it }
         val lines = document.lines
-        val bounds = schemeBounds(lines, id) ?: return false
+        val bounds = schemeBounds(lines, id) ?: return failed()
         val pattern = Regex("""^(\s{4})${Regex.escape(key)}:(\s*)(.*)$""")
         val formatted = ThemeStyleWriter.formatScalar(value)
 
@@ -193,9 +242,19 @@ object ThemeSchemeWriter {
         schemes: Map<String, Map<String, String>>,
         create: Boolean = false,
         rewrite: Boolean = false,
-    ): Boolean {
-        if (schemes.isEmpty()) return false
-        val document = ThemeTextFile.read(file) ?: return false
+    ): Boolean = setSchemesChecked(file, schemes, create, rewrite).outcome == ThemeTextFile.WriteOutcome.WRITTEN
+
+    /** [setSchemes] with the reason it did not happen, and a conflict baseline. */
+    fun setSchemesChecked(
+        file: File,
+        schemes: Map<String, Map<String, String>>,
+        create: Boolean = false,
+        rewrite: Boolean = false,
+        expectedText: String? = null,
+    ): SaveResult {
+        if (schemes.isEmpty()) return failed()
+        val document = ThemeTextFile.read(file) ?: return failed()
+        stale(file, document, expectedText)?.let { return it }
         val lines = document.lines
         var applied = false
         for ((id, entries) in schemes) {
@@ -203,7 +262,7 @@ object ThemeSchemeWriter {
             if (!applyEntries(lines, id, entries, create, rewrite)) continue
             applied = true
         }
-        if (!applied) return false
+        if (!applied) return failed()
         return write(file, document, lines)
     }
 
@@ -220,11 +279,16 @@ object ThemeSchemeWriter {
 
         if (existing == null) {
             if (!create || section == null) return false
+            // A section usually closes with a banner comment ("#--- 配色结束 ---#").
+            // The new scheme belongs inside the section, so the banner has to
+            // stay last: insert before the trailing blank/comment lines rather
+            // than after them, where the next run would not find it.
+            var insertAt = section.last + 1
+            while (insertAt > section.first && isSectionTrailer(lines[insertAt - 1])) insertAt--
             val block = mutableListOf<String>()
-            if (lines[section.last].isNotBlank()) block += ""
+            if (insertAt > 0 && lines[insertAt - 1].isNotBlank()) block += ""
             block += "  $id:"
             entries.forEach { (key, value) -> block += "    $key: ${ThemeStyleWriter.formatScalar(value)}" }
-            val insertAt = section.last + 1
             lines.addAll(insertAt, block)
             // Keep one blank line between the new block and whatever follows it.
             val after = insertAt + block.size
@@ -299,6 +363,9 @@ object ThemeSchemeWriter {
         return result
     }
 
+    /** Blank lines and column-0 comments close a section without being part of it. */
+    private fun isSectionTrailer(line: String): Boolean = line.isBlank() || line.startsWith("#")
+
     private fun boundsStart(
         lines: List<String>,
         range: IntRange,
@@ -347,8 +414,31 @@ object ThemeSchemeWriter {
         file: File,
         document: ThemeTextFile.Document,
         lines: List<String>,
-    ): Boolean = ThemeTextFile.write(file, document, lines).also { written ->
-        if (!written) Timber.w("Cannot write color schemes to %s", file.name)
+    ): SaveResult {
+        val outcome = ThemeTextFile.writeChecked(file, document, lines)
+        if (outcome != ThemeTextFile.WriteOutcome.WRITTEN) {
+            Timber.w("Cannot write color schemes to %s: %s", file.name, outcome)
+            return SaveResult(outcome)
+        }
+        return SaveResult(outcome, ThemeTextFile.render(document, lines))
+    }
+
+    private fun failed() = SaveResult(ThemeTextFile.WriteOutcome.FAILED)
+
+    /**
+     * The refusal for a file that no longer holds what the editor read.
+     *
+     * Same rule as the style writer: the snapshot the rows were built from is
+     * the caller's, so only the caller can say whether it is still current.
+     */
+    private fun stale(
+        file: File,
+        document: ThemeTextFile.Document,
+        expectedText: String?,
+    ): SaveResult? {
+        if (expectedText == null || document.text == expectedText) return null
+        Timber.w("Color schemes changed outside the app: %s", file.name)
+        return SaveResult(ThemeTextFile.WriteOutcome.CONFLICT)
     }
 
     /** Strips a matching pair of single or double quotes around a YAML scalar. */

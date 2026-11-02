@@ -75,6 +75,7 @@ class ThemePreviewActivity : AppCompatActivity() {
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         menu.findItem(R.id.action_edit_style)?.isVisible = hasLoaded
+        menu.findItem(R.id.action_edit_colors)?.isVisible = hasLoaded
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -94,6 +95,11 @@ class ThemePreviewActivity : AppCompatActivity() {
 
             R.id.action_edit_style -> {
                 startActivity(StyleEditorActivity.intent(this, themeId, themeName))
+                return true
+            }
+
+            R.id.action_edit_colors -> {
+                startActivity(ColorEditorActivity.intent(this, themeId, themeName))
                 return true
             }
         }
