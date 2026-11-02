@@ -61,6 +61,14 @@ class ThemeKeyboardRoundTripTest :
         fun raws(file: File): List<RawKeyboard> = ThemeKeyboardReader.read(ThemeTextFile.read(file)!!.lines)
 
         Given("a shipped theme's preset_keyboards block") {
+            Then("the fixture is still the CRLF file it claims to be") {
+                // `.gitattributes` must keep this file verbatim (`-text`): with
+                // LF endings the round trip below would still pass, while no
+                // longer testing that a save preserves `\r\n`.
+                original.contains("\r\n") shouldBe true
+                original.count { it == '\n' } shouldBe 4234
+            }
+
             Then("it is the block the gate was written against") {
                 val file = tempFile()
                 val layouts = raws(file)
