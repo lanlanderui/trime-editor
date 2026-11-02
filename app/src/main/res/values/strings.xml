@@ -91,4 +91,26 @@
     <string name="kbd_empty_keys">这个布局里没有键，不能保存。先加一个键。</string>
     <string name="kbd_saved">已写入主题文件</string>
     <string name="kbd_save_failed">写不进主题文件</string>
+
+    <!-- 动作（preset_keys，D7） -->
+    <string name="action_edit_keys">编辑动作</string>
+    <string name="key_list_title">按键动作</string>
+    <string name="key_search_hint">搜索动作名或 id</string>
+    <string name="key_empty">这个主题没有 preset_keys 段，没有动作可编辑</string>
+    <string name="key_no_match">没有匹配「%1$s」的动作</string>
+    <string name="key_load_failed">读不出这个主题的动作</string>
+    <string name="key_saved">已写入主题文件</string>
+    <string name="key_save_failed">写不进主题文件</string>
+    <string name="key_save">保存</string>
+    <string name="key_field_label">显示名 label</string>
+    <string name="key_field_send">发送按键 send</string>
+    <string name="key_field_select">切换布局 select</string>
+    <string name="key_field_command">命令 command</string>
+    <string name="key_field_option">命令参数 option</string>
+    <string name="key_field_text">输出文本 text</string>
+    <string name="key_field_toggle">开关 toggle</string>
+    <string name="key_field_states">状态 states（如 [ 中文, 西文 ]）</string>
+    <string name="key_field_preview">预览符号 preview</string>
+    <string name="key_field_functional">functional（功能键配色）</string>
+    <string name="key_field_repeatable">repeatable（长按连发）</string>
 </resources>

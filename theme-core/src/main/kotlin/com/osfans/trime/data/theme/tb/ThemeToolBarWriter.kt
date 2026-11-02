@@ -58,6 +58,11 @@ object ThemeToolBarWriter {
         val raw = ThemeToolBarReader.read(lines) ?: return noSection(file)
         val leaf = raw.scalars[key]
 
+        // Setting a value to what it already is is not an edit: rewriting the
+        // line would re-quote it (`"ic@arrow-left"` → `ic@arrow-left`) and turn
+        // a no-op into a diff.
+        if (leaf != null && !leaf.commented && leaf.value == value) return Result.Success
+
         if (leaf != null && !leaf.commented) {
             lines[leaf.line] = line(leaf.indent, key, value, leaf.comment)
         } else if (leaf != null) {
@@ -98,6 +103,8 @@ object ThemeToolBarWriter {
         val indent = indentOf(raw, block, path)
         val live = block.leaves.lastOrNull { it.path == path && !it.commented }
         val commented = block.leaves.lastOrNull { it.path == path }
+
+        if (live != null && live.value == value) return Result.Success
 
         when {
             live != null -> lines[live.line] = line(live.indent, path.last(), value, live.comment)

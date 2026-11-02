@@ -10,6 +10,10 @@
         android:title="@string/action_edit_colors"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/action_edit_keys"
+        android:title="@string/action_edit_keys"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_edit_layout"
         android:title="@string/action_edit_layout"
         app:showAsAction="never" />

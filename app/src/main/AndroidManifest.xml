@@ -63,6 +63,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".PresetKeyListActivity"
+            android:exported="false"
+            android:parentActivityName=".ThemePreviewActivity" />
+
+        <activity
             android:name=".KeyboardListActivity"
             android:exported="false"
             android:parentActivityName=".ThemePreviewActivity" />

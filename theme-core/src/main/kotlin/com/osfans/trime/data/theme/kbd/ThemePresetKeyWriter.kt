@@ -18,17 +18,30 @@ import java.io.File
  */
 object ThemePresetKeyWriter {
     /**
+     * Fields whose value is YAML rather than a string, written verbatim.
+     *
+     * `functional: true` must stay a bare boolean and `states: [ 中文, 西文 ]` a
+     * flow sequence; quoting either would turn a flag into the string "true"
+     * and a list into one long string.
+     */
+    private val RAW_FIELDS = setOf("functional", "repeatable", "states", "sticky", "slide_cursor", "slide_delete")
+
+    /**
      * Applies [changes] to entry [id].
      *
      * A null value removes the field, a value sets it. Passing the current value
      * is not a change: the file is left untouched so a "save" that changed
      * nothing does not churn the file.
+     *
+     * @param rawFields fields the caller already formatted as YAML, overriding
+     *   [RAW_FIELDS] when it knows better (a value the theme wrote as a string).
      */
     fun update(
         file: File,
         section: RawPresetSection,
         id: String,
         changes: Map<String, String?>,
+        rawFields: Set<String> = RAW_FIELDS,
     ): ThemeKeyboardWriter.Result {
         val raw = section.keys.firstOrNull { it.id == id }
             ?: return ThemeKeyboardWriter.Result.Failure("找不到条目「$id」")
@@ -44,12 +57,12 @@ object ThemePresetKeyWriter {
                 }
 
                 index >= 0 -> if (entries[index].value != value) {
-                    entries[index] = KeyboardYaml.Entry(field, value)
+                    entries[index] = KeyboardYaml.Entry(field, value, value.takeIf { field in rawFields })
                     changed = true
                 }
 
                 else -> {
-                    entries += KeyboardYaml.Entry(field, value)
+                    entries += KeyboardYaml.Entry(field, value, value.takeIf { field in rawFields })
                     changed = true
                 }
             }

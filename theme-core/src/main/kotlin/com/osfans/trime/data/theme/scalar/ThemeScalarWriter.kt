@@ -54,6 +54,9 @@ object ThemeScalarWriter {
         } else {
             val nodes = ThemeScalarReader.nodes(lines, range)
             val leaf = nodes.lastOrNull { !it.group && it.path == path }
+            // Same reason as the toolbar: a value written back unchanged must
+            // not re-quote the author's line.
+            if (leaf != null && !leaf.commented && leaf.value == value) return true
             if (leaf != null) {
                 // A commented line is a default the author pinned, so writing to
                 // it means enabling it: same line, same indent, same comment,
