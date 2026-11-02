@@ -1,0 +1,93 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Rime community
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+package com.osfans.trime.editor.ui.preview
+
+import android.view.ViewGroup
+import androidx.core.view.doOnLayout
+import com.osfans.trime.data.theme.ColorManager
+import com.osfans.trime.data.theme.Theme
+import com.osfans.trime.data.theme.ThemeLoader
+import com.osfans.trime.data.theme.ThemeLoader.ThemeLoadResult
+import com.osfans.trime.ime.keyboard.KeyColorBoardView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * A preview board and the theme that is currently loaded into it.
+ *
+ * Every screen that shows a keyboard — the read-only preview and the style
+ * editor — needs the same three steps in the same order: load the theme off the
+ * main thread, make it the process's active theme (so `Key` resolves colours
+ * through it), then build the keyboard at the width the board was given. Doing
+ * that here is what keeps the two screens from drifting apart: there is one
+ * place that knows the order, and one place that remembers the measured width.
+ *
+ * Call [load] and [show] from the main thread; only the file read is moved off.
+ */
+class ThemeBoard private constructor(
+    private val container: ViewGroup,
+    val view: KeyColorBoardView,
+) {
+    private var width = 0
+
+    var theme: Theme? = null
+        private set
+
+    init {
+        container.addView(
+            view,
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        // The keyboard is built from the width the board actually got, which is
+        // only known after layout. It is posted rather than run inline: setting
+        // the keyboard calls requestLayout(), and a request made during a layout
+        // pass is dropped — the board then keeps its fallback height and clips
+        // its bottom row.
+        view.doOnLayout { laid ->
+            val measured = laid.width
+            if (measured > 0 && measured != width) laid.post { build(measured) }
+        }
+    }
+
+    /** Draws [theme] at the width the board has, or will have once it is measured. */
+    fun show(theme: Theme) {
+        this.theme = theme
+        if (width > 0) build(width)
+    }
+
+    /**
+     * Loads [themeId] and draws it.
+     *
+     * Loading and activating are one call on purpose: a theme that is read but
+     * not attached has no colour scheme, so a board built from it would resolve
+     * every colour against whatever theme was active before.
+     */
+    suspend fun load(themeId: String): ThemeLoadResult {
+        val result = withContext(Dispatchers.IO) { ThemeLoader.loadTheme(themeId) }
+        if (result is ThemeLoadResult.Success) {
+            ColorManager.attachTheme(result.theme)
+            show(result.theme)
+        }
+        return result
+    }
+
+    /** Repaints without rebuilding; enough after a colour scheme switch. */
+    fun refresh() = view.invalidate()
+
+    private fun build(targetWidth: Int) {
+        width = targetWidth
+        val current = theme ?: return
+        view.showTheme(current, targetWidth)
+    }
+
+    companion object {
+        /** Wraps [container]'s content in a board; the container must be empty. */
+        fun attach(container: ViewGroup): ThemeBoard = ThemeBoard(container, KeyColorBoardView(container.context))
+    }
+}

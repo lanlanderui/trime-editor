@@ -19,7 +19,10 @@ dependencies {
     api(project(":theme-editor"))
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.preference)
+    // api 而不是 implementation：StyleEditorFragment 是 PreferenceFragmentCompat，
+    // 宿主（:app）要把它挂进 FragmentTransaction，就必然要在自己的编译类路径上看得见
+    // 这个基类，否则 replace() 会报「实参是 StyleEditorFragment 但期望 Fragment」。
+    api(libs.androidx.preference)
     implementation(libs.androidx.recyclerview)
     implementation(libs.flexbox)
     implementation(libs.splitties.views.dsl)

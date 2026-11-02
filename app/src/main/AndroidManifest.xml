@@ -40,6 +40,12 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
 
+        <activity
+            android:name=".StyleEditorActivity"
+            android:exported="false"
+            android:parentActivityName=".ThemePreviewActivity"
+            android:windowSoftInputMode="adjustResize" />
+
     </application>
 
 </manifest>

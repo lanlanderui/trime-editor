@@ -28,4 +28,7 @@
     <string name="preview_findings">静态检查：%1$d 处需要注意</string>
     <string name="preview_findings_clean">静态检查通过</string>
     <string name="preview_findings_unknown">静态检查未运行</string>
+
+    <string name="style_editor_title">键盘样式</string>
+    <string name="action_edit_style">编辑样式</string>
 </resources>

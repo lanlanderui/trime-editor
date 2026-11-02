@@ -131,10 +131,42 @@ object ThemeStyleWriter {
         file: File,
         key: String,
         value: String,
-    ): Boolean {
-        val document = ThemeTextFile.read(file) ?: return false
+    ): Boolean = writeEntryChecked(file, key, value).outcome == ThemeTextFile.WriteOutcome.WRITTEN
+
+    /**
+     * What a save did, plus the file's new contents when it happened.
+     *
+     * The text is handed back so a screen can keep editing without re-reading
+     * the theme: it becomes the baseline for the next conflict check.
+     */
+    data class SaveResult(
+        val outcome: ThemeTextFile.WriteOutcome,
+        val text: String? = null,
+    )
+
+    /**
+     * [writeEntry] with the reason it did not happen.
+     *
+     * @param expectedText the contents the caller last showed the user. When it
+     *   is given and the file no longer holds it, nothing is written and the
+     *   result is a conflict. Without it the check can never fail: this call
+     *   reads the file itself, so it would always agree with what it just read
+     *   — the "changed outside the app" case is precisely the one where the
+     *   editor is holding an older copy.
+     */
+    fun writeEntryChecked(
+        file: File,
+        key: String,
+        value: String,
+        expectedText: String? = null,
+    ): SaveResult {
+        val document = ThemeTextFile.read(file) ?: return SaveResult(ThemeTextFile.WriteOutcome.FAILED)
+        if (expectedText != null && document.text != expectedText) {
+            Timber.w("Style file changed outside the app: %s", file.name)
+            return SaveResult(ThemeTextFile.WriteOutcome.CONFLICT)
+        }
         val lines = document.lines
-        val range = styleRange(lines) ?: return false
+        val range = styleRange(lines) ?: return SaveResult(ThemeTextFile.WriteOutcome.FAILED)
 
         var replaced = false
         for (i in range) {
@@ -152,9 +184,12 @@ object ThemeStyleWriter {
             lines.add(insertAt, "  $key: $value")
         }
 
-        return ThemeTextFile.write(file, document, lines).also { written ->
-            if (!written) Timber.w("Cannot write style '%s' to %s", key, file.name)
+        val outcome = ThemeTextFile.writeChecked(file, document, lines)
+        if (outcome != ThemeTextFile.WriteOutcome.WRITTEN) {
+            Timber.w("Cannot write style '%s' to %s (%s)", key, file.name, outcome)
+            return SaveResult(outcome)
         }
+        return SaveResult(outcome, ThemeTextFile.render(document, lines))
     }
 
     /**
@@ -165,6 +200,51 @@ object ThemeStyleWriter {
      * writer already knows: the line now reads `key: value`, literally.
      */
     fun writtenEntry(value: String): Entry = Entry(value, Source.LITERAL)
+
+    /**
+     * The scalar an `&anchor` definition carries, or null when it holds a block.
+     *
+     * An entry written as `key_height: *jpgd4` has no number on its own line —
+     * the number lives wherever `&jpgd4` was defined, which in this theme is
+     * three thousand lines of keyboard heights further up. An editor that put
+     * the anchor's *name* in its input box would write `key_height: jpgd4` on
+     * OK, turning a working theme into one that fails to parse, so the value has
+     * to be looked up before it is offered for editing.
+     *
+     * Returns null rather than guessing when the definition is a mapping or a
+     * sequence: those cannot be replaced by a single scalar, and the honest
+     * answer is "this one cannot be edited here".
+     */
+    fun resolveAnchor(
+        lines: List<String>,
+        name: String,
+    ): String? {
+        val token = "&$name"
+        for (line in lines) {
+            val at = line.indexOf(token)
+            if (at < 0) continue
+            // `&jpgd4` must not match the definition of `&jpgd40`.
+            val rest = line.substring(at + token.length)
+            if (rest.isNotEmpty() && !rest[0].isWhitespace()) continue
+            val scalar = stripComment(rest)
+            if (scalar.isNotEmpty()) return stripQuotes(scalar)
+        }
+        return null
+    }
+
+    /** [resolveAnchor] over [file]; null when the file or the anchor is missing. */
+    fun resolveAnchor(
+        file: File,
+        name: String,
+    ): String? = resolveAnchor(readLines(file), name)
+
+    private fun stripQuotes(value: String): String {
+        if (value.length < 2) return value
+        val first = value.first()
+        if (first != '\'' && first != '"') return value
+        if (value.last() != first) return value
+        return value.substring(1, value.length - 1)
+    }
 
     /** Index range of the lines inside the top-level `style:` block. */
     private fun styleRange(lines: List<String>): IntRange? {

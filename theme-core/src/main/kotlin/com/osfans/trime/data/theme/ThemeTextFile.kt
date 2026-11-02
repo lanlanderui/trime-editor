@@ -29,6 +29,24 @@ object ThemeTextFile {
     )
 
     /**
+     * What a save did.
+     *
+     * A bare `false` cannot be acted on: "the file was edited elsewhere" needs a
+     * different answer from the user ("reload or overwrite?") than "the disk is
+     * full". Every writer returns this, and the boolean entry points are
+     * shortcuts for the callers that only care whether the file changed.
+     */
+    enum class WriteOutcome {
+        WRITTEN,
+
+        /** The file no longer holds [Document.text]; nothing was touched. */
+        CONFLICT,
+
+        /** The file is gone, unreadable, or the replacement could not be made. */
+        FAILED,
+    }
+
+    /**
      * Counts successful saves, so a reader caching a decoded theme can tell
      * its own app's edits apart from no edit at all.
      *
@@ -63,11 +81,24 @@ object ThemeTextFile {
         file: File,
         document: Document,
         lines: List<String>,
-    ): Boolean = replaceText(
+    ): Boolean = writeChecked(file, document, lines) == WriteOutcome.WRITTEN
+
+    /** [write] with the reason it did not happen. */
+    fun writeChecked(
+        file: File,
+        document: Document,
+        lines: List<String>,
+    ): WriteOutcome = replaceTextChecked(
         file = file,
         expectedText = document.text,
-        newText = render(lines, document.eol, document.endsWithNewline),
+        newText = render(document, lines),
     )
+
+    /** The bytes [lines] become under [document]'s line endings. */
+    fun render(
+        document: Document,
+        lines: List<String>,
+    ): String = renderLines(lines, document.eol, document.endsWithNewline)
 
     /**
      * Replaces [file] only when it still contains [expectedText].
@@ -77,16 +108,28 @@ object ThemeTextFile {
      * refuses to rename over an existing file, the target is removed and the
      * rename retried; the backup is restored if that also fails.
      */
-    @Synchronized
     fun replaceText(
         file: File,
         expectedText: String,
         newText: String,
-    ): Boolean {
+    ): Boolean = replaceTextChecked(file, expectedText, newText) == WriteOutcome.WRITTEN
+
+    /** [replaceText] with the reason it did not happen. */
+    @Synchronized
+    fun replaceTextChecked(
+        file: File,
+        expectedText: String,
+        newText: String,
+    ): WriteOutcome {
         var temp: File? = null
         return try {
             check(file.isFile) { "Theme file does not exist: ${file.name}" }
-            check(file.readText() == expectedText) { "Theme file changed outside the app: ${file.name}" }
+            // The conflict check is a return, not a throw: "somebody edited this
+            // while it was open" is an answer the caller acts on, not a failure.
+            if (file.readText() != expectedText) {
+                Timber.w("Theme file changed outside the app: %s", file.name)
+                return WriteOutcome.CONFLICT
+            }
 
             val backup = backupOf(file)
             file.copyTo(backup, overwrite = true)
@@ -115,10 +158,10 @@ object ThemeTextFile {
                     .onFailure { Timber.w(it, "Cannot mirror saved theme %s", file.name) }
             }
             writeGeneration++
-            true
+            WriteOutcome.WRITTEN
         } catch (e: Exception) {
             Timber.w(e, "Cannot write theme %s", file.name)
-            false
+            WriteOutcome.FAILED
         } finally {
             // If the target could not be restored, leave the complete new file
             // next to it rather than deleting the only recoverable copy.
@@ -128,9 +171,20 @@ object ThemeTextFile {
 
     fun backupOf(file: File): File = File(file.parentFile, file.name + ".bak")
 
+    /** Puts the last backup back, treating "the file may have changed" as a conflict. */
+    fun restoreBackup(file: File): WriteOutcome {
+        val backup = backupOf(file)
+        val previous = runCatching { backup.readText() }.getOrNull() ?: return WriteOutcome.FAILED
+        val current = runCatching { file.readText() }.getOrNull() ?: return WriteOutcome.FAILED
+        return replaceTextChecked(file, expectedText = current, newText = previous)
+    }
+
+    /** Whether [file] can be put back, so a UI can offer the action only when it works. */
+    fun hasBackup(file: File): Boolean = backupOf(file).let { it.isFile && it.length() > 0 }
+
     private fun tempOf(file: File): File = File(file.parentFile, file.name + ".tmp")
 
-    private fun render(
+    private fun renderLines(
         lines: List<String>,
         eol: String,
         endsWithNewline: Boolean,

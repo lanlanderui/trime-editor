@@ -4,5 +4,11 @@
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorPrimaryDark">@color/brand_primary_dark</item>
         <item name="colorAccent">@color/brand_accent</item>
+        <!--
+          PreferenceFragmentCompat 要求主题里声明 preferenceTheme，否则一
+          attach 就抛 "Must specify preferenceTheme in theme"；AppCompat 的
+          基础主题不自带这一项。
+        -->
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
     </style>
 </resources>
