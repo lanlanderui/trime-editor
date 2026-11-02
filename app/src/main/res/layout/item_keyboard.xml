@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 一个布局一张卡：缩略图形状来自 LayoutEngine，与输入法同一套分行 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="14dp">
+
+    <com.osfans.trime.editor.ui.kbd.KeyboardThumbView
+        android:id="@+id/thumb"
+        android:layout_width="match_parent"
+        android:layout_height="96dp" />
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/meta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/badge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:lineSpacingMultiplier="1.2"
+        android:textColor="@color/stale_text"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+</LinearLayout>

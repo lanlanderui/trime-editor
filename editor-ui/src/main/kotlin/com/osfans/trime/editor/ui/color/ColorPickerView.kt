@@ -19,6 +19,7 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.view.MotionEvent
 import android.view.View
+import com.osfans.trime.editor.ui.dp
 
 /**
  * Saturation/value square, hue strip and alpha strip in one view.

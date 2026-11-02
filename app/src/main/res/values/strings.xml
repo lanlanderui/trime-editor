@@ -54,4 +54,41 @@
     <string name="guide_title">三步看到效果</string>
     <string name="guide_body">1. 选主题 —— 在工作台里点一张卡片，打开它的预览。\n\n2. 改样式或配色 —— 上面的预览板用的是输入法的排版引擎，改一项它就跟着变；写入的是同一份 trime.yaml。\n\n3. 回到输入法 —— 用右上角「回到输入法」切过去，键盘就是改后的样子。输入法不会缓存主题，切回来若看到「主题文件已被输入法改过」，点一下重新加载即可。</string>
     <string name="guide_ok">知道了</string>
+
+    <!-- 布局编辑（D6） -->
+    <string name="action_edit_layout">编辑布局</string>
+    <string name="kbd_list_title">键盘布局</string>
+    <string name="kbd_search_hint">搜索布局名或 id</string>
+    <string name="kbd_card_meta">%1$d 行 · %2$d 键</string>
+    <string name="kbd_badge_alias">别名 → %1$s</string>
+    <string name="kbd_badge_spacer">有占位键</string>
+    <string name="kbd_badge_patched">被 .custom.yaml 覆盖，改了可能不生效</string>
+    <string name="kbd_badge_unsupported">不可编辑：%1$s</string>
+    <string name="kbd_empty">这个主题没有 preset_keyboards 段，没有布局可编辑</string>
+    <string name="kbd_no_match">没有匹配「%1$s」的布局</string>
+    <string name="kbd_cannot_edit_title">这个布局不能在这里编辑</string>
+    <string name="kbd_cannot_edit_body">换一个布局试试。</string>
+    <string name="kbd_load_failed">读不出这个主题的布局</string>
+    <string name="kbd_editor_subtitle">%1$s · %2$s</string>
+    <string name="kbd_editor_status">%1$d 个键（其中 %2$d 个占位键）· 当前第 %3$d 个</string>
+    <string name="kbd_field_label">文字 label</string>
+    <string name="kbd_field_width">宽度 width（1–60）</string>
+    <string name="kbd_action_click">单击 click</string>
+    <string name="kbd_action_long_click">长按 long_click</string>
+    <string name="kbd_action_swipe_up">上滑 swipe_up</string>
+    <string name="kbd_action_swipe_down">下滑 swipe_down</string>
+    <string name="kbd_action_swipe_left">左滑 swipe_left</string>
+    <string name="kbd_action_swipe_right">右滑 swipe_right</string>
+    <string name="kbd_action_advanced">其它动作</string>
+    <string name="kbd_action_add">加键</string>
+    <string name="kbd_action_delete">删键</string>
+    <string name="kbd_action_left">左移</string>
+    <string name="kbd_action_right">右移</string>
+    <string name="kbd_action_undo">撤销</string>
+    <string name="kbd_action_redo">重做</string>
+    <string name="kbd_action_save">保存</string>
+    <string name="kbd_last_key">至少保留一个键：空布局写不进主题</string>
+    <string name="kbd_empty_keys">这个布局里没有键，不能保存。先加一个键。</string>
+    <string name="kbd_saved">已写入主题文件</string>
+    <string name="kbd_save_failed">写不进主题文件</string>
 </resources>

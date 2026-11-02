@@ -19,6 +19,7 @@ import com.osfans.trime.data.theme.material.MaterialYouColors
 import com.osfans.trime.data.theme.material.MaterialYouWriter
 import com.osfans.trime.data.theme.material.SystemDynamicColors
 import com.osfans.trime.editor.ui.R
+import com.osfans.trime.editor.ui.dp
 
 /**
  * Asks where the palette should come from, and shows what it will look like.

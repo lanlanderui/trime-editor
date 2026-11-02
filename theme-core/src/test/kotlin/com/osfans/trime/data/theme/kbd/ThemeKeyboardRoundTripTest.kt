@@ -129,10 +129,11 @@ class ThemeKeyboardRoundTripTest :
             }
         }
 
-        Given("a layout padded with spacers") {
+        Given("every layout padded with spacers") {
             // A key with no action takes width but builds no runtime key, so the
             // draft index and the keyboard index drift apart after the first
-            // spacer. Selecting the key under the finger depends on this map.
+            // spacer. Selecting the key under the finger depends on this map, so
+            // it is checked on all of them, not just the one that was reported.
             Then("the draft-to-key map skips exactly the spacers") {
                 val decoded = decoded()
                 val drafting = KeyboardDraft(decoded.getValue("default"))
@@ -152,6 +153,23 @@ class ThemeKeyboardRoundTripTest :
                     (0 until drafting.size).filter { clickables(drafting.key(it)) }
                 // Every runtime key is reachable from the draft, and back.
                 map.keyToDraft.all { it >= 0 } shouldBe true
+            }
+
+            Then("none of them maps a runtime key onto a spacer") {
+                val file = tempFile()
+                val spaced = KeyboardCatalog.build(ThemeKeyboardReader.read(file), decoded())
+                    .filter { it.hasSpacer }
+                // Nine of the shipped theme's fifty layouts carry spacers.
+                spaced.size shouldBe 9
+                spaced.forEach { entry ->
+                    val drafting = KeyboardDraft(entry.layout!!)
+                    val clickable = (0 until drafting.size).count { clickables(drafting.key(it)) }
+                    val map = drafting.indexMap(clickable)
+                    map.keyToDraft.filter { it >= 0 }.forEach { draftIndex ->
+                        clickables(drafting.key(draftIndex)) shouldBe true
+                    }
+                    map.draftToKey.filter { it >= 0 }.size shouldBe clickable
+                }
             }
         }
     })

@@ -39,6 +39,7 @@ import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.ThemeTextFile
 import com.osfans.trime.editor.ui.DiskBackedEditor
 import com.osfans.trime.editor.ui.R
+import com.osfans.trime.editor.ui.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex

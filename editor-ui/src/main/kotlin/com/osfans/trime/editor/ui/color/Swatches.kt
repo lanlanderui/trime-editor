@@ -16,9 +16,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
-
-/** Density-independent pixels; a local copy so the UI module needs no helper library. */
-internal fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+import com.osfans.trime.editor.ui.dp
 
 /**
  * A rounded swatch with a thin outline.

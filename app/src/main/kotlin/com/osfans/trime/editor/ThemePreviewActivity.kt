@@ -104,6 +104,11 @@ class ThemePreviewActivity : AppCompatActivity() {
                 return true
             }
 
+            R.id.action_edit_layout -> {
+                startActivity(KeyboardListActivity.intent(this, themeId, themeName))
+                return true
+            }
+
             R.id.action_back_to_ime -> {
                 InputMethodApp.launch(this)
                 return true
