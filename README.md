@@ -72,8 +72,11 @@ keyPassword=…
 ## 测试
 
 ```bash
-./gradlew test            # theme-core：解析/写盘/目录/闸门的单测
+./gradlew :theme-core:test    # 解析/写盘/目录/闸门（335 例，纯 JVM）
+./gradlew :app:testDebugUnitTest   # 诊断跳转映射、崩溃日志文本（20 例，纯 JVM）
 ./gradlew lintDebug
 ```
 
 `theme-core/src/test/resources/tongwenfeng.trime.yaml` 是真实主题的整份夹具（202,005 字节 / CRLF），`.gitattributes` 里用 `-text` 固定住行尾——它一旦被归一成 LF，「写盘不换行尾」那条断言就变成了同义反复。
+
+`app` 的单测只覆盖不碰 Android 的那部分：`DiagnosticsRouter` 把「finding 的路径」映成「该开哪个页」，`CrashLog` 的 `format`/`shouldRotate` 决定报告长什么样、什么时候整份丢弃。需要 `Context`、`filesDir`、真实主题的验证都在设备上做。
