@@ -30,7 +30,7 @@ object CrashLog {
     private const val FILE_NAME = "crash.log"
 
     /** Cap for the whole file; one report is a few KB. */
-    private const val MAX_BYTES = 256 * 1024
+    internal const val MAX_BYTES = 256 * 1024
 
     fun file(context: Context): File = File(context.filesDir, FILE_NAME)
 
@@ -67,19 +67,35 @@ object CrashLog {
         error: Throwable,
     ) {
         val target = file(context)
-        if (target.length() > MAX_BYTES) target.delete()
-        val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(Date())
-        val trace = StringWriter().also { error.printStackTrace(PrintWriter(it)) }.toString()
-        target.appendText(
-            buildString {
-                append("==== ")
-                append(stamp)
-                append("  thread=")
-                append(thread.name)
-                append('\n')
-                append(trace)
-                append('\n')
-            },
-        )
+        // Rotation happens before the append, so a runaway log is dropped as a
+        // whole instead of being trimmed: half a stack trace is worse than none.
+        if (shouldRotate(target.length())) target.delete()
+        target.appendText(format(stampNow(), thread.name, error))
+    }
+
+    private fun stampNow(): String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(Date())
+
+    /** Whether a file of [bytes] is already too big to append to. */
+    internal fun shouldRotate(bytes: Long): Boolean = bytes > MAX_BYTES
+
+    /**
+     * One report: a header saying when and on which thread, then the stack.
+     *
+     * Split from the writing so its shape can be checked without a device — the
+     * file path, the cap and the `Context` are the only parts that need one.
+     * The trailing newline separates two reports that end up in the same file.
+     */
+    internal fun format(
+        stamp: String,
+        threadName: String,
+        error: Throwable,
+    ): String = buildString {
+        append("==== ")
+        append(stamp)
+        append("  thread=")
+        append(threadName)
+        append('\n')
+        append(StringWriter().also { error.printStackTrace(PrintWriter(it)) }.toString())
+        append('\n')
     }
 }

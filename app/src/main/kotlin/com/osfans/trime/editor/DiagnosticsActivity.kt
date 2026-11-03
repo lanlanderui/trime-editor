@@ -191,36 +191,33 @@ class DiagnosticsActivity : AppCompatActivity() {
     }
 
     /**
-     * Opens the screen that owns [finding]'s section.
+     * Opens the screen that owns [finding], via [DiagnosticsRouter].
      *
-     * The path's first segment is the theme section, which is what decides the
-     * screen; the second, when present, is an id that screen can jump to.
+     * The `when` has no `else`: [EditorScreen] lists the screens that exist, so
+     * a new one added without an intent here stops the build rather than
+     * turning its rows into taps that do nothing.
      */
     private fun jump(finding: ThemeDiagnostics.Finding) {
-        val path = finding.path.orEmpty().split('/')
-        val section = path.firstOrNull().orEmpty()
-        val id = path.getOrNull(1).orEmpty()
+        val route = DiagnosticsRouter.route(finding.path)
         val intent =
-            when (section) {
-                "style" -> StyleEditorActivity.intent(this, themeId, themeName)
+            when (route.screen) {
+                EditorScreen.STYLE -> StyleEditorActivity.intent(this, themeId, themeName)
 
-                "preset_color_schemes", "fallback_colors", "colors" ->
-                    ColorEditorActivity.intent(this, themeId, themeName)
+                EditorScreen.COLORS -> ColorEditorActivity.intent(this, themeId, themeName)
 
-                "preset_keyboards" ->
-                    if (id.isEmpty()) {
-                        KeyboardListActivity.intent(this, themeId, themeName)
-                    } else {
-                        KeyboardEditorActivity.intent(this, themeId, themeName, id, id)
-                    }
+                EditorScreen.KEYBOARD_LIST -> KeyboardListActivity.intent(this, themeId, themeName)
 
-                "preset_keys" -> PresetKeyListActivity.intent(this, themeId, themeName, query = id)
+                EditorScreen.KEYBOARD_EDITOR ->
+                    KeyboardEditorActivity.intent(this, themeId, themeName, route.id, route.id)
 
-                "tool_bar" -> ToolBarActivity.intent(this, themeId, themeName)
+                EditorScreen.PRESET_KEYS ->
+                    PresetKeyListActivity.intent(this, themeId, themeName, query = route.id)
 
-                "window", "preedit" -> CandidateWindowActivity.intent(this, themeId, themeName)
+                EditorScreen.TOOL_BAR -> ToolBarActivity.intent(this, themeId, themeName)
 
-                else -> null
+                EditorScreen.CANDIDATE_WINDOW -> CandidateWindowActivity.intent(this, themeId, themeName)
+
+                EditorScreen.NONE -> null
             }
         if (intent == null) {
             Toast.makeText(this, R.string.dg_no_jump, Toast.LENGTH_SHORT).show()
