@@ -127,10 +127,10 @@ class DiagnosticsActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT),
         )
 
-        if (all.isNullOrEmpty()) {
-            column.addView(text(getString(R.string.dg_clean), secondary = true))
-            return
-        }
+        // Both "the checks did not run" and "the checks found nothing" are said
+        // in the summary already; repeating one of them here used to print
+        // "没有发现问题" right under "静态检查未运行", which is the opposite.
+        if (all.isNullOrEmpty()) return
 
         // Errors first: the list is read top-down and the first rows should be the
         // ones worth acting on.
@@ -172,16 +172,6 @@ class DiagnosticsActivity : AppCompatActivity() {
                 setLineSpacing(0f, 1.2f)
             },
         )
-    }
-
-    private fun text(
-        value: String,
-        secondary: Boolean,
-    ): TextView = TextView(this).apply {
-        text = value
-        textSize = 13f
-        setTextColor(ContextCompat.getColor(context, R.color.chip_text))
-        if (secondary) setPadding(0, dp(6), 0, dp(6))
     }
 
     private fun severityLabel(severity: ThemeDiagnostics.Severity): String = when (severity) {
