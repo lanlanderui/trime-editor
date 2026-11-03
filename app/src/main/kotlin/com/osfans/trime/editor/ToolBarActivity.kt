@@ -64,6 +64,9 @@ class ToolBarActivity : AppCompatActivity() {
     private var raw: RawToolBar = RawToolBar.EMPTY
     private var model: ToolBarModel? = null
 
+    /** One edit can commit twice (IME done, then focus loss); only the first writes. */
+    private var writing = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityToolBarBinding.inflate(layoutInflater)
@@ -507,9 +510,15 @@ class ToolBarActivity : AppCompatActivity() {
     }
 
     private fun write(action: () -> ThemeToolBarWriter.Result) {
-        if (sourceFile == null) return
+        if (sourceFile == null || writing) return
+        writing = true
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { action() }
+            val result =
+                try {
+                    withContext(Dispatchers.IO) { action() }
+                } finally {
+                    writing = false
+                }
             if (isFinishing || isDestroyed) return@launch
             when (result) {
                 is ThemeToolBarWriter.Result.Success -> {

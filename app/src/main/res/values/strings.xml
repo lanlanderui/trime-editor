@@ -145,4 +145,38 @@
     <string name="tb_field_option_styles">二态样式 option_styles（逗号分隔，两个才算二态）</string>
     <string name="tb_field_action">动作 action</string>
     <string name="tb_field_long_press">长按动作 long_press_action</string>
+
+    <!-- 候选窗 / 预编辑（D7d） -->
+    <string name="action_edit_window">候选窗与预编辑</string>
+    <string name="cw_title">候选窗与预编辑</string>
+    <string name="cw_section_window">候选窗 window</string>
+    <string name="cw_section_preedit">预编辑 preedit</string>
+    <string name="cw_not_written">这个主题没有写这一段，输入法用自己的默认值。</string>
+    <string name="cw_create_section">新建这一段</string>
+    <string name="cw_section_created">已新建这一段</string>
+    <string name="cw_unlisted">文件里还有这些本页不提供的项：%1$s</string>
+    <string name="cw_default_hint">默认 %1$s</string>
+    <string name="cw_reset">恢复默认</string>
+    <string name="cw_saved">已写入主题文件</string>
+    <string name="cw_save_failed">写不进主题文件，可能是另一个窗口刚改过它，再试一次。</string>
+    <string name="cw_save_failed_title">保存失败</string>
+    <string name="cw_load_failed">读不出这个主题的候选窗设置</string>
+    <string name="cw_field_unknown">（未命名字段）</string>
+    <string name="cw_window_insets_vertical">内边距 · 上下 insets.vertical</string>
+    <string name="cw_window_insets_horizontal">内边距 · 左右 insets.horizontal</string>
+    <string name="cw_window_item_padding_vertical">候选间距 · 上下 item_padding.vertical</string>
+    <string name="cw_window_item_padding_horizontal">候选间距 · 左右 item_padding.horizontal</string>
+    <string name="cw_window_min_width">最小宽度 min_width</string>
+    <string name="cw_window_corner_radius">圆角 corner_radius</string>
+    <string name="cw_window_border">边框 border</string>
+    <string name="cw_window_shadow">阴影 shadow</string>
+    <string name="cw_window_alpha">不透明度 alpha</string>
+    <string name="cw_window_label_font">标签字号 foreground.label_font_size</string>
+    <string name="cw_window_text_font">候选字号 foreground.text_font_size</string>
+    <string name="cw_window_comment_font">编码字号 foreground.comment_font_size</string>
+    <string name="cw_preedit_padding">左右内边距 horizontal_padding</string>
+    <string name="cw_preedit_top_start">左上圆角 top_start_radius</string>
+    <string name="cw_preedit_top_end">右上圆角 top_end_radius</string>
+    <string name="cw_preedit_alpha">不透明度 alpha</string>
+    <string name="cw_preedit_font">字号 foreground.font_size</string>
 </resources>

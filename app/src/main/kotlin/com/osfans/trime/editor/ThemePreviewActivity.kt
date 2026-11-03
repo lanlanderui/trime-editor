@@ -104,6 +104,11 @@ class ThemePreviewActivity : AppCompatActivity() {
                 return true
             }
 
+            R.id.action_edit_window -> {
+                startActivity(CandidateWindowActivity.intent(this, themeId, themeName))
+                return true
+            }
+
             R.id.action_edit_toolbar -> {
                 startActivity(ToolBarActivity.intent(this, themeId, themeName))
                 return true
