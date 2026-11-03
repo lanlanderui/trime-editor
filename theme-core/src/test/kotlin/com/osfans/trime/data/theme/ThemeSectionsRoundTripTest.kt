@@ -13,6 +13,7 @@ import com.osfans.trime.data.theme.scalar.ThemeScalarReader
 import com.osfans.trime.data.theme.scalar.ThemeScalarWriter
 import com.osfans.trime.data.theme.tb.ThemeToolBarReader
 import com.osfans.trime.data.theme.tb.ThemeToolBarWriter
+import com.osfans.trime.data.theme.tb.ToolBarCatalog
 import com.osfans.trime.data.theme.tb.ToolBarSlot
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -170,6 +171,26 @@ class ThemeSectionsRoundTripTest :
                 val changed = before.indices.filter { before[it] != after[it] }
                 changed.size shouldBe 1
                 changed.single() shouldBe line
+            }
+
+            Then("editing an anchored block is what the buttons list then reads back") {
+                // `hide_button: &hide_button` is referenced as `*hide_button`, so the
+                // block is the single source for that button: what the editor shows
+                // after the write is what the keyboard will draw.
+                val file = fixture()
+                val before = file.readText().lines()
+                ThemeToolBarWriter.setBlockField(file, "hide_button", listOf("action"), "Menu")
+                    .shouldBeInstanceOf<ThemeToolBarWriter.Result.Success>()
+
+                val after = file.readText().lines()
+                val changed = before.indices.filter { before[it] != after[it] }
+                changed.size shouldBe 1
+                // The anchor itself is untouched.
+                after[changed.single()] shouldBe "    action: Menu"
+
+                val model = ToolBarCatalog.build(ThemeToolBarReader.read(file)!!)
+                model.buttons.first { it.blockId == "hide_button" }.action shouldBe "Menu"
+                model.buttons.first { it.blockId == "hide_button" }.anchor shouldBe "hide_button"
             }
         }
 

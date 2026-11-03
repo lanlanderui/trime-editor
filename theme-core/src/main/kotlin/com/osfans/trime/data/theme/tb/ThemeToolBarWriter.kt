@@ -60,8 +60,11 @@ object ThemeToolBarWriter {
 
         // Setting a value to what it already is is not an edit: rewriting the
         // line would re-quote it (`"ic@arrow-left"` → `ic@arrow-left`) and turn
-        // a no-op into a diff.
-        if (leaf != null && !leaf.commented && leaf.value == value) return Result.Success
+        // a no-op into a diff. Compared unquoted, because the screen shows the
+        // value without the file's quoting.
+        if (leaf != null && !leaf.commented && KeyboardYaml.unquote(leaf.value.orEmpty()) == value) {
+            return Result.Success
+        }
 
         if (leaf != null && !leaf.commented) {
             lines[leaf.line] = line(leaf.indent, key, value, leaf.comment)
@@ -104,7 +107,7 @@ object ThemeToolBarWriter {
         val live = block.leaves.lastOrNull { it.path == path && !it.commented }
         val commented = block.leaves.lastOrNull { it.path == path }
 
-        if (live != null && live.value == value) return Result.Success
+        if (live != null && KeyboardYaml.unquote(live.value.orEmpty()) == value) return Result.Success
 
         when {
             live != null -> lines[live.line] = line(live.indent, path.last(), value, live.comment)

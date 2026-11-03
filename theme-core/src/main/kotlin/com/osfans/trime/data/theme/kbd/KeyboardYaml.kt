@@ -209,7 +209,15 @@ object KeyboardYaml {
         return null
     }
 
-    private fun unquote(raw: String): String {
+    /**
+     * Strips one layer of YAML quoting from a flow-context scalar.
+     *
+     * Kept public because flow sequences are read as raw item text (an alias must
+     * keep its `*`, an inline map its braces), so callers that want the values
+     * rather than the spelling — the toolbar's `option_styles` — need the same
+     * unquoting the flow-map parser does.
+     */
+    fun unquote(raw: String): String {
         if (raw.length < 2) return raw
         return when {
             raw.first() == '\'' && raw.last() == '\'' ->
