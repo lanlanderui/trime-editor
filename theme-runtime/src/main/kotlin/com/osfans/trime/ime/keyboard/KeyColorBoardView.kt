@@ -71,6 +71,16 @@ constructor(
     var keyboard: Keyboard? = null
         set(value) {
             field = value
+            // 高度直接写进 layoutParams，不只靠 requestLayout()：
+            // 在布局过程中发出的 requestLayout 会被丢掉（父容器正在算），
+            // 视图就留着兜底高度，最底下一排被裁掉——画出来只剩半排，点也点不中。
+            // 写进 layoutParams 后，下一帧一定会按这个高度测量。
+            val wanted = value?.height ?: 0
+            val params = layoutParams
+            if (wanted > 0 && params != null && params.height != wanted) {
+                params.height = wanted
+                layoutParams = params
+            }
             requestLayout()
             invalidate()
         }
