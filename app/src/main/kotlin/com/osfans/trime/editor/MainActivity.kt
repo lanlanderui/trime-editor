@@ -63,7 +63,9 @@ class MainActivity : AppCompatActivity() {
         binding.themes.adapter = adapter
         binding.themes.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
         binding.changeDir.setOnClickListener { chooseDirectory() }
-        FirstRunGuide.showIfFirstRun(this)
+        // 崩溃提示优先于首启引导：它解释「上次为什么没了」，引导讲「怎么用」。
+        // 两者同时需要，只有「第一次启动就崩过」这一种情况，那时先解释崩溃。
+        if (!reportLastCrash()) FirstRunGuide.showIfFirstRun(this)
     }
 
     /**
@@ -73,9 +75,12 @@ class MainActivity : AppCompatActivity() {
      * unsaved draft — so "safe mode" has nothing to skip. What is worth doing is
      * the part a user cannot get anywhere else: naming the crash and offering the
      * log, instead of letting the app disappear quietly.
+     *
+     * @return whether a dialog was shown; the caller uses it to avoid stacking
+     *   this on top of the first-run guide.
      */
-    private fun reportLastCrash() {
-        if (!CrashLog.hasReport(this)) return
+    private fun reportLastCrash(): Boolean {
+        if (!CrashLog.hasReport(this)) return false
         AlertDialog.Builder(this)
             .setTitle(R.string.crash_title)
             .setMessage(R.string.crash_body)
@@ -83,6 +88,7 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton(R.string.crash_later, null)
             .setPositiveButton(R.string.crash_clear) { _, _ -> CrashLog.clear(this) }
             .show()
+        return true
     }
 
     private fun showCrashLog() {

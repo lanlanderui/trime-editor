@@ -52,6 +52,11 @@
             android:name=".KeyboardEditorActivity"
             android:exported="true"
             tools:replace="android:exported" />
+
+        <!-- 打开就崩，用来验「崩溃日志落盘 + 下次启动提示」。只在调试包。 -->
+        <activity
+            android:name=".CrashProbeActivity"
+            android:exported="true" />
     </application>
 
 </manifest>
