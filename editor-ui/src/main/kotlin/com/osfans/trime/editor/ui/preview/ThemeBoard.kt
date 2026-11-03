@@ -36,9 +36,13 @@ class ThemeBoard private constructor(
     var theme: Theme? = null
         private set
 
+    /** 候选栏与底部内边距的示意带子，包着 [view]。 */
+    private val chrome = PreviewChrome(container.context)
+
     init {
+        chrome.wrap(view)
         container.addView(
-            view,
+            chrome,
             ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -58,6 +62,8 @@ class ThemeBoard private constructor(
     /** Draws [theme] at the width the board has, or will have once it is measured. */
     fun show(theme: Theme) {
         this.theme = theme
+        // 候选栏和底部内边距都按这份主题的样式摆：换主题时它们也要跟着变。
+        chrome.applyStyle(theme.style)
         if (width > 0) build(width)
     }
 

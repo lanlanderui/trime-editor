@@ -216,4 +216,8 @@
     <string name="material_you_source_unavailable">系统壁纸取色需要 Android 12 及以上，这里只能用指定颜色生成。</string>
     <string name="material_you_title">Material You</string>
     <string name="material_you_write">生成明暗两套</string>
+
+    <!-- 预览板上下的两条示意带子 -->
+    <string name="preview_band_candidate">候选栏</string>
+    <string name="preview_band_bottom">keyboard_padding_bottom</string>
 </resources>

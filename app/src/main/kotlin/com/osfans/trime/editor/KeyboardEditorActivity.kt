@@ -38,6 +38,7 @@ import com.osfans.trime.data.theme.kbd.ThemeKeyboardReader
 import com.osfans.trime.data.theme.kbd.ThemeKeyboardWriter
 import com.osfans.trime.editor.databinding.ActivityKeyboardEditorBinding
 import com.osfans.trime.editor.ui.kbd.KeyboardCanvasView
+import com.osfans.trime.editor.ui.preview.PreviewChrome
 import com.osfans.trime.ime.keyboard.Keyboard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,6 +61,7 @@ import kotlin.math.roundToInt
 class KeyboardEditorActivity : AppCompatActivity() {
     private lateinit var binding: ActivityKeyboardEditorBinding
     private lateinit var canvas: KeyboardCanvasView
+    private lateinit var chrome: PreviewChrome
 
     private var themeId: String = ""
     private var themeName: String = ""
@@ -110,8 +112,11 @@ class KeyboardEditorActivity : AppCompatActivity() {
         supportActionBar?.subtitle = getString(R.string.kbd_editor_subtitle, layoutName.ifEmpty { layoutId }, layoutId)
 
         canvas = KeyboardCanvasView(this)
+        // 画布外面包一层「整块输入区」：上面候选栏、下面 keyboard_padding_bottom。
+        // 只画键盘会让人以为键盘贴着屏幕底边。
+        chrome = PreviewChrome(this).also { it.wrap(canvas) }
         binding.canvasHost.addView(
-            canvas,
+            chrome,
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
         canvas.onSelect = ::select
@@ -232,6 +237,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
         val t = theme ?: return
         val d = draft ?: return
         val config = d.toConfig()
+        chrome.applyStyle(t.style)
         canvas.applyThemeMetrics(t)
         val keyboard = Keyboard(this, t, canvasWidth, config)
         canvas.keyboard = keyboard
