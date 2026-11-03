@@ -46,6 +46,9 @@ class ThemeKeyboardWriterTest :
                 width = it["width"]?.toFloatOrNull() ?: 0f,
                 click = it["click"]?.let { token -> KeyActionToken.Plain(token) },
                 longClick = it["long_click"]?.let { token -> KeyActionToken.Plain(token) },
+                // popup 的两种写法（列表 / 空格分隔的字符串）都归一到列表，
+                // 编辑器拿到的模型就是这个形状。
+                popup = ThemeKeyboardReader.popupOf(it).orEmpty(),
             )
         }.toMutableList()
 
@@ -113,6 +116,67 @@ class ThemeKeyboardWriterTest :
                     ThemeKeyboardWriter.replaceKeys(file, raw, keys)
                     file.readText() shouldContain "{click: {commit: '，', label: '逗号'}, width: 8}"
                 }
+            }
+        }
+
+        Given("a popup edit") {
+            Then("a key that had none gets one, in the field order the file uses") {
+                fileWith(SAMPLE) { file, raw ->
+                    val keys = keysOf(raw)
+                    keys[1] = keys[1].copy(popup = listOf("1", "2"))
+                    ThemeKeyboardWriter.replaceKeys(file, raw, keys)
+                    // 数字形态的 token 加引号：popup 里它们是字符串，不是数字。
+                    file.readText() shouldContain "- {click: w, popup: ['1', '2']}"
+                }
+            }
+
+            Then("the old space-separated spelling is replaced in place, not appended to") {
+                fileWith(SAMPLE) { file, raw ->
+                    val keys = keysOf(raw)
+                    keys[0] = keys[0].copy(popup = keys[0].popup + "1")
+                    ThemeKeyboardWriter.replaceKeys(file, raw, keys)
+                    file.readText() shouldContain "long_click: '_', popup: [q, w, '1'], width: 5"
+                }
+            }
+
+            Then("clearing it drops the field instead of writing an empty list") {
+                fileWith(SAMPLE) { file, raw ->
+                    val keys = keysOf(raw)
+                    keys[0] = keys[0].copy(popup = emptyList())
+                    ThemeKeyboardWriter.replaceKeys(file, raw, keys)
+                    file.readText() shouldContain "- {click: q, long_click: '_', width: 5}"
+                }
+            }
+
+            Then("tokens that YAML needs quoted get quoted") {
+                fileWith(SAMPLE) { file, raw ->
+                    val keys = keysOf(raw)
+                    keys[1] = keys[1].copy(popup = listOf(":", "1"))
+                    ThemeKeyboardWriter.replaceKeys(file, raw, keys)
+                    file.readText() shouldContain "popup: [':', '1']"
+                }
+            }
+
+            Then("an untouched popup keeps the author's spelling") {
+                fileWith(SAMPLE) { file, raw ->
+                    val keys = keysOf(raw)
+                    keys[0] = keys[0].copy(width = 7f)
+                    ThemeKeyboardWriter.replaceKeys(file, raw, keys)
+                    // 'q w' 原样留着：模型里它已经是 ["q","w"]，语义没变就不重排。
+                    file.readText() shouldContain "popup: 'q w', width: 7}"
+                }
+            }
+        }
+
+        Given("the two spellings of popup") {
+            Then("both read as the same list") {
+                ThemeKeyboardReader.popupOf("""["TrimeWiki", "Settings"]""") shouldBe listOf("TrimeWiki", "Settings")
+                ThemeKeyboardReader.popupOf("'q w'") shouldBe listOf("q", "w")
+            }
+
+            Then("absent and empty both read as no popup") {
+                ThemeKeyboardReader.popupOf(null as String?) shouldBe emptyList()
+                ThemeKeyboardReader.popupOf("[]") shouldBe emptyList()
             }
         }
 

@@ -181,6 +181,35 @@ object ThemeKeyboardReader {
 
     private fun stripComment(raw: String): String = splitComment(raw).first
 
+    /**
+     * One key's `popup`, read leniently.
+     *
+     * Two spellings exist in the wild: the list `["a", "b"]` and the older
+     * space-separated string `'q w'`. The theme decoder only understands the
+     * list one — a string decodes to an empty list (see
+     * `LenientStringListSerializer`) — so an editor that trusted the decoded
+     * model would show "no popup" for the second spelling and delete the line
+     * on the next unrelated edit.
+     *
+     * @return the items, empty when the key has no `popup`; null when the line
+     *   carries one in a shape neither spelling covers, which callers must
+     *   leave alone rather than overwrite.
+     */
+    fun popupOf(raw: String?): List<String>? {
+        if (raw == null) return emptyList()
+        val text = raw.trim()
+        if (text.isEmpty()) return emptyList()
+        if (text.startsWith("[")) {
+            return KeyboardYaml.parseFlowSequence(text)?.map(KeyboardYaml::unquote)
+        }
+        val value = KeyboardYaml.unquote(text)
+        if (value.isEmpty()) return emptyList()
+        return value.split(' ', '\t').filter { it.isNotEmpty() }
+    }
+
+    /** [popupOf] for a whole key line. */
+    fun popupOf(rawKey: RawKey?): List<String>? = popupOf(rawKey?.get("popup"))
+
     private fun String.trimQuotes(): String = when {
         length >= 2 && first() == '\'' && last() == '\'' -> substring(1, length - 1).replace("''", "'")
         length >= 2 && first() == '"' && last() == '"' -> substring(1, length - 1)

@@ -86,6 +86,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
     private lateinit var widthSlider: SeekBar
     private lateinit var widthMinus: Button
     private lateinit var widthPlus: Button
+    private lateinit var popupValue: TextView
     private lateinit var actionFields: List<Pair<ActionSlot, EditText>>
     private lateinit var statusText: TextView
 
@@ -214,7 +215,10 @@ class KeyboardEditorActivity : AppCompatActivity() {
             return
         }
         raw = block
-        draft = KeyboardDraft(config)
+        // popup 由读取器宽松解析后单独喂进来：模型只认列表写法，`popup: 'q w'`
+        // 会解成空，照着模型编辑等于把那行删掉。读不懂的形状按「没有」处理，
+        // 写入器认得出那种情况，不会去动它。
+        draft = KeyboardDraft(config, block.keys.map { ThemeKeyboardReader.popupOf(it).orEmpty() })
         history.clear()
         if (select || selected == null) selected = 0
         canvasWidth = binding.canvasHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
@@ -344,6 +348,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
                 }
             }
         addWidthStepper(column)
+        addPopupRow(column)
 
         actionFields = ActionSlot.entries.filter { it.isPrimary }.map { slot ->
             slot to addField(column, getString(slot.titleRes())) { value ->
@@ -463,6 +468,89 @@ class KeyboardEditorActivity : AppCompatActivity() {
         setOnClickListener { onClick() }
     }
 
+    /**
+     * 长按弹出的选项（`popup:`）：一行看得见的列表，点开逐项编辑。
+     *
+     * 用对话框而不是「逗号分隔的输入框」：token 里本来就可能有逗号或空格
+     * （`，`、`space`、`Return`），靠分隔符切迟早切错。
+     */
+    private fun addPopupRow(parent: LinearLayout) {
+        parent.addView(
+            TextView(this).apply {
+                text = getString(R.string.kbd_field_popup)
+                textSize = 12f
+                setPadding(0, dp(10), 0, dp(2))
+                setTextColor(ContextCompat.getColor(this@KeyboardEditorActivity, R.color.chip_text))
+            },
+        )
+        popupValue =
+            TextView(this).apply {
+                textSize = 16f
+                setPadding(0, dp(6), 0, dp(6))
+                setOnClickListener { editPopup() }
+            }
+        parent.addView(
+            popupValue,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        )
+    }
+
+    /** 逐项编辑 `popup`：一行一个 token，可以加、可以删。 */
+    private fun editPopup() {
+        val d = draft ?: return
+        val index = selected ?: return
+        val column =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(20), dp(4), dp(20), 0)
+            }
+        val rows = mutableListOf<Pair<LinearLayout, EditText>>()
+
+        fun addRow(value: String) {
+            val row =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+            val edit =
+                EditText(this).apply {
+                    setText(value)
+                    setSingleLine(true)
+                    textSize = 16f
+                    setPadding(0, dp(6), 0, dp(6))
+                }
+            val remove =
+                stepButton("×", getString(R.string.kbd_popup_remove)) {
+                    column.removeView(row)
+                    rows.removeAll { it.first === row }
+                }
+            row.addView(edit, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(remove, LinearLayout.LayoutParams(dp(48), dp(44)))
+            column.addView(row)
+            rows += row to edit
+        }
+
+        d.popup(index).forEach(::addRow)
+        column.addView(
+            Button(this).apply {
+                setText(R.string.kbd_popup_add)
+                setOnClickListener { addRow("") }
+            },
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.kbd_field_popup)
+            .setMessage(R.string.kbd_popup_hint)
+            .setView(ScrollView(this).apply { addView(column) })
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val items = rows.map { it.second.text.toString().trim() }.filter { it.isNotEmpty() }
+                // mutate 自己会比较快照；没变就不进撤销栈。
+                mutate(coalesce = "popup") { draft, i -> draft.setPopup(i, items) }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     /** 加减键：一次一格，撞到 1 或当前量程上限就停手（不改文件、不进撤销栈）。 */
     private fun nudgeWidth(delta: Int) {
         mutate(coalesce = "width") { draft, index ->
@@ -494,17 +582,22 @@ class KeyboardEditorActivity : AppCompatActivity() {
         widthSlider.isEnabled = enabled
         widthMinus.isEnabled = enabled
         widthPlus.isEnabled = enabled
+        popupValue.isEnabled = enabled
         actionFields.forEach { (_, field) -> field.isEnabled = enabled }
         if (d != null && index != null) {
             labelField.setText(d.key(index).label)
             val weight = d.effectiveWidth(index)
             widthField.setText(formatWeight(weight))
             syncWidthSlider(weight)
+            popupValue.text =
+                d.popup(index).takeIf { it.isNotEmpty() }?.joinToString("、")
+                    ?: getString(R.string.kbd_popup_empty)
             actionFields.forEach { (slot, field) -> field.setText(d.action(index, slot).orEmpty()) }
         } else {
             labelField.setText("")
             widthField.setText("")
             widthSlider.progress = 0
+            popupValue.text = ""
             actionFields.forEach { (_, field) -> field.setText("") }
         }
         bindingFields = false

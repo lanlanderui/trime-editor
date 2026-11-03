@@ -208,6 +208,19 @@ object ThemeKeyboardWriter {
         put("label", key.label.takeIf { it.isNotEmpty() })
         val width = key.width.takeIf { it > 0f }?.let(::formatNumber)
         put("width", width, raw = width)
+        // `popup` 是列表。模型里空既可能是「本来就没有」，也可能是文件写的是
+        // `'q w'` 这种解不出来的形式，所以只在两种情况下动它：用户给了内容，
+        // 或者文件里那行确实读得懂、而用户把它清空了。
+        val rawPopup = original?.get("popup")
+        val popup = key.popup
+        if (popup.isNotEmpty()) {
+            if (!samePopup(rawPopup, popup)) {
+                val text = formatPopup(popup, rawPopup)
+                put("popup", text, raw = text)
+            }
+        } else if (ThemeKeyboardReader.popupOf(rawPopup)?.isNotEmpty() == true) {
+            put("popup", null)
+        }
         ActionSlot.entries.forEach { slot ->
             when (val token = actionOf(key, slot)) {
                 null -> put(slot.yaml, null)
@@ -332,6 +345,24 @@ object ThemeKeyboardWriter {
     } else {
         Result.Failure("写入失败")
     }
+
+    /** Same items in the same order, whichever of the two spellings the file used. */
+    private fun samePopup(
+        raw: String?,
+        items: List<String>,
+    ): Boolean = ThemeKeyboardReader.popupOf(raw) == items
+
+    /**
+     * `[a, b]`, quoting items only where YAML needs it, and keeping the inner
+     * spacing the author used (`[ a, b ]` stays spaced).
+     */
+    private fun formatPopup(
+        items: List<String>,
+        raw: String?,
+    ): String = KeyboardYaml.formatFlowSequence(
+        items.map(KeyboardYaml::quote),
+        spaced = raw?.trim()?.startsWith("[ ") == true,
+    )
 
     /** `10.0` and `10` are the same weight; keep the author's spelling in that case. */
     private fun sameValue(

@@ -23,6 +23,15 @@ import com.osfans.trime.data.theme.model.TextKeyboard.TextKey
  */
 class KeyboardDraft(
     val config: TextKeyboard,
+    /**
+     * Each key's `popup` as read leniently from the file, in draft order.
+     *
+     * The decoded model only understands the list spelling of `popup`, so the
+     * space-separated one (`'q w'`) arrives empty. Passing the reader's result
+     * here is what lets the inspector show it — and what keeps an unrelated
+     * edit from dropping the line.
+     */
+    popups: List<List<String>>? = null,
 ) {
     /** A key plus the source line it was read from, or null for a new key. */
     data class Entry(
@@ -31,7 +40,10 @@ class KeyboardDraft(
     )
 
     private val entries: MutableList<Entry> =
-        config.keys.mapIndexed { index, key -> Entry(key, index) }.toMutableList()
+        config.keys.mapIndexed { index, key ->
+            val lenient = popups?.getOrNull(index).orEmpty()
+            Entry(if (lenient.isEmpty()) key else key.copy(popup = lenient), index)
+        }.toMutableList()
 
     val size: Int get() = entries.size
 
@@ -132,6 +144,23 @@ class KeyboardDraft(
         label: String,
     ) {
         update(index) { it.copy(label = label) }
+    }
+
+    /** What a long press on this key offers, left to right. */
+    fun popup(index: Int): List<String> = entries[index].key.popup
+
+    /**
+     * Replaces the popup list.
+     *
+     * An empty list means "no popup": the writer drops the field rather than
+     * writing `popup: []`, which would be a different thing to look at in the
+     * file even though the keyboard behaves the same.
+     */
+    fun setPopup(
+        index: Int,
+        items: List<String>,
+    ) {
+        update(index) { it.copy(popup = items) }
     }
 
     /**

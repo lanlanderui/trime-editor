@@ -72,6 +72,11 @@
     <string name="kbd_editor_status">%1$d 个键（其中 %2$d 个占位键）· 当前第 %3$d 个</string>
     <string name="kbd_field_label">文字 label</string>
     <string name="kbd_field_width">宽度 width</string>
+    <string name="kbd_field_popup">长按弹出 popup</string>
+    <string name="kbd_popup_hint">长按这个键时列在上方的选项，从左到右；一项都不填表示不弹。</string>
+    <string name="kbd_popup_add">添加一项</string>
+    <string name="kbd_popup_remove">删除这一项</string>
+    <string name="kbd_popup_empty">（未设置）</string>
     <string name="kbd_width_decrease">减小宽度</string>
     <string name="kbd_width_increase">增大宽度</string>
     <string name="kbd_action_click">单击 click</string>
