@@ -19,6 +19,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -82,6 +83,9 @@ class KeyboardEditorActivity : AppCompatActivity() {
 
     private lateinit var labelField: EditText
     private lateinit var widthField: EditText
+    private lateinit var widthSlider: SeekBar
+    private lateinit var widthMinus: Button
+    private lateinit var widthPlus: Button
     private lateinit var actionFields: List<Pair<ActionSlot, EditText>>
     private lateinit var statusText: TextView
 
@@ -339,6 +343,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
                     mutate(coalesce = "width") { d, index -> d.setWidth(index, weight) }
                 }
             }
+        addWidthStepper(column)
 
         actionFields = ActionSlot.entries.filter { it.isPrimary }.map { slot ->
             slot to addField(column, getString(slot.titleRes())) { value ->
@@ -391,6 +396,94 @@ class KeyboardEditorActivity : AppCompatActivity() {
         onCommit(field.text.toString().trim())
     }
 
+    /**
+     * 宽度的三个入口：滑杆扫、加减键微调、上面的输入框给准数。
+     *
+     * 三者改的是同一个 weight，所以谁在前台都不会和数据打架。滑杆拖动时只调
+     * [previewWidth]（不记历史），松手才 [commitWidth] 记一条；加减键走
+     * [mutate] 并按 `width` 合并。于是一次调宽在撤销栈里占一格，而不是几十格。
+     */
+    private fun addWidthStepper(parent: LinearLayout) {
+        widthMinus =
+            stepButton("−", getString(R.string.kbd_width_decrease)) {
+                nudgeWidth(-WIDTH_STEP)
+            }
+        widthPlus =
+            stepButton("+", getString(R.string.kbd_width_increase)) {
+                nudgeWidth(WIDTH_STEP)
+            }
+        widthSlider =
+            SeekBar(this).apply {
+                max = WIDTH_SLIDER_SPAN
+                setOnSeekBarChangeListener(
+                    object : SeekBar.OnSeekBarChangeListener {
+                        override fun onProgressChanged(
+                            bar: SeekBar,
+                            progress: Int,
+                            fromUser: Boolean,
+                        ) {
+                            // 程序化设置（fillInspector 同步）也会进来，只认手指。
+                            if (!fromUser) return
+                            val index = selected ?: return
+                            previewWidth(index, progress + WIDTH_MIN.toFloat())
+                        }
+
+                        override fun onStartTrackingTouch(bar: SeekBar) = Unit
+
+                        override fun onStopTrackingTouch(bar: SeekBar) {
+                            val index = selected ?: return
+                            commitWidth(index, bar.progress + WIDTH_MIN.toFloat())
+                        }
+                    },
+                )
+            }
+        val row =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(4), 0, dp(4))
+            }
+        row.addView(widthMinus, LinearLayout.LayoutParams(dp(48), dp(44)))
+        row.addView(widthSlider, LinearLayout.LayoutParams(0, dp(44), 1f))
+        row.addView(widthPlus, LinearLayout.LayoutParams(dp(48), dp(44)))
+        parent.addView(row)
+    }
+
+    private fun stepButton(
+        label: String,
+        description: String,
+        onClick: () -> Unit,
+    ): Button = Button(this).apply {
+        text = label
+        contentDescription = description
+        textSize = 20f
+        minWidth = 0
+        minimumWidth = 0
+        setPadding(0, 0, 0, 0)
+        setOnClickListener { onClick() }
+    }
+
+    /** 加减键：一次一格，撞到 1 或当前量程上限就停手（不改文件、不进撤销栈）。 */
+    private fun nudgeWidth(delta: Int) {
+        mutate(coalesce = "width") { draft, index ->
+            val upper = (widthSlider.max + WIDTH_MIN).toFloat()
+            val next = (draft.effectiveWidth(index) + delta).coerceIn(WIDTH_MIN.toFloat(), upper)
+            draft.setWidth(index, next)
+        }
+    }
+
+    /**
+     * 把滑杆摆到 [weight] 上。
+     *
+     * 权重超过 100 时把量程撑到它，否则滑块贴在右端、再也调不回去——自定义
+     * 主题里确实有把一行写成 120 的。
+     */
+    private fun syncWidthSlider(weight: Float) {
+        val span = (weight.roundToInt() - WIDTH_MIN).coerceAtLeast(WIDTH_SLIDER_SPAN)
+        if (widthSlider.max != span) widthSlider.max = span
+        widthSlider.progress = (weight.roundToInt() - WIDTH_MIN).coerceIn(0, span)
+    }
+
     private fun fillInspector() {
         bindingFields = true
         val d = draft
@@ -398,14 +491,20 @@ class KeyboardEditorActivity : AppCompatActivity() {
         val enabled = d != null && index != null
         labelField.isEnabled = enabled
         widthField.isEnabled = enabled
+        widthSlider.isEnabled = enabled
+        widthMinus.isEnabled = enabled
+        widthPlus.isEnabled = enabled
         actionFields.forEach { (_, field) -> field.isEnabled = enabled }
         if (d != null && index != null) {
             labelField.setText(d.key(index).label)
-            widthField.setText(formatWeight(d.effectiveWidth(index)))
+            val weight = d.effectiveWidth(index)
+            widthField.setText(formatWeight(weight))
+            syncWidthSlider(weight)
             actionFields.forEach { (slot, field) -> field.setText(d.action(index, slot).orEmpty()) }
         } else {
             labelField.setText("")
             widthField.setText("")
+            widthSlider.progress = 0
             actionFields.forEach { (_, field) -> field.setText("") }
         }
         bindingFields = false
@@ -430,12 +529,24 @@ class KeyboardEditorActivity : AppCompatActivity() {
         invalidateOptionsMenu()
     }
 
+    /**
+     * 拖动开始前的那一份快照。
+     *
+     * 拖动过程不记历史（每个像素一条会把撤销栈冲掉），但松手时要记的「改之前」
+     * 是**动手之前**的状态。`previewWidth` 已经把 draft 改成终值了，若在
+     * `commitWidth` 里再取当前值当 before，比较结果永远是「没变」——撤销栈里
+     * 就少了这一步，一次撤销会连带把上一次加减键的改动一起吃掉。
+     */
+    private var widthOrigin: List<KeyboardDraft.Entry>? = null
+
     private fun previewWidth(
         index: Int,
         weight: Float,
     ) {
+        val d = draft ?: return
         // Live drag: no history entry per pixel, only the final commit records one.
-        draft?.setWidth(index, weight)
+        if (widthOrigin == null) widthOrigin = d.snapshot()
+        d.setWidth(index, weight)
         redraw()
     }
 
@@ -444,14 +555,18 @@ class KeyboardEditorActivity : AppCompatActivity() {
         weight: Float,
     ) {
         val d = draft ?: return
-        val before = d.snapshot()
+        val origin = widthOrigin
+        widthOrigin = null
         d.setWidth(index, weight)
-        if (d.snapshot() != before) history.record(before, null, System.currentTimeMillis())
+        val after = d.snapshot()
+        if (origin != null && origin != after) history.record(origin, null, System.currentTimeMillis())
         redraw()
         invalidateOptionsMenu()
     }
 
     private fun select(index: Int?) {
+        // 换键等于放弃上一次没提交的拖动起点，否则下一次松手会记到别人头上。
+        widthOrigin = null
         selected = index
         canvas.selectedIndex = index
         fillInspector()
@@ -461,6 +576,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
     fun undo(view: View) {
         val d = draft ?: return
         val restored = history.undo(d.snapshot()) ?: return
+        widthOrigin = null
         d.restore(restored)
         redraw()
         invalidateOptionsMenu()
@@ -469,6 +585,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
     fun redo(view: View) {
         val d = draft ?: return
         val restored = history.redo(d.snapshot()) ?: return
+        widthOrigin = null
         d.restore(restored)
         redraw()
         invalidateOptionsMenu()
@@ -556,6 +673,14 @@ class KeyboardEditorActivity : AppCompatActivity() {
     private fun toast(resId: Int) = Toast.makeText(this, resId, Toast.LENGTH_SHORT).show()
 
     companion object {
+        /** 滑杆刻度 1…100：1 是「细到不能再细」，100 是一整行。 */
+        private const val WIDTH_MIN = 1
+        private const val WIDTH_SLIDER_MAX = 100
+        private const val WIDTH_SLIDER_SPAN = WIDTH_SLIDER_MAX - WIDTH_MIN
+
+        /** 加减键一次走一格。 */
+        private const val WIDTH_STEP = 1
+
         private const val EXTRA_THEME_ID = "theme_id"
         private const val EXTRA_THEME_NAME = "theme_name"
         private const val EXTRA_LAYOUT_ID = "layout_id"

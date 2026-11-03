@@ -71,7 +71,9 @@
     <string name="kbd_editor_subtitle">%1$s · %2$s</string>
     <string name="kbd_editor_status">%1$d 个键（其中 %2$d 个占位键）· 当前第 %3$d 个</string>
     <string name="kbd_field_label">文字 label</string>
-    <string name="kbd_field_width">宽度 width（1–60）</string>
+    <string name="kbd_field_width">宽度 width</string>
+    <string name="kbd_width_decrease">减小宽度</string>
+    <string name="kbd_width_increase">增大宽度</string>
     <string name="kbd_action_click">单击 click</string>
     <string name="kbd_action_long_click">长按 long_click</string>
     <string name="kbd_action_swipe_up">上滑 swipe_up</string>
