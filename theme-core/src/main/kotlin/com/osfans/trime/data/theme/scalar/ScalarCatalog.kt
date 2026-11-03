@@ -6,6 +6,7 @@
 
 package com.osfans.trime.data.theme.scalar
 
+import com.osfans.trime.data.theme.model.GeneralStyle
 import com.osfans.trime.data.theme.model.Preedit
 import com.osfans.trime.data.theme.model.Window
 
@@ -35,6 +36,14 @@ data class ScalarField(
 data class ScalarSectionSpec(
     val name: String,
     val fields: List<ScalarField>,
+    /**
+     * Whether to list the keys the file has but this screen does not offer.
+     *
+     * `window` and `preedit` are short blocks written for this screen, so a
+     * leftover key is worth pointing at. `style` is a sixty-key block of which
+     * only the candidate-bar ones belong here; listing the rest is noise.
+     */
+    val listUnlisted: Boolean = true,
 )
 
 /**
@@ -50,6 +59,8 @@ object ScalarCatalog {
     private val WINDOW = Window()
 
     private val PREEDIT = Preedit()
+
+    private val STYLE = GeneralStyle()
 
     val window: ScalarSectionSpec =
         ScalarSectionSpec(
@@ -84,7 +95,37 @@ object ScalarCatalog {
             ),
         )
 
-    val sections: List<ScalarSectionSpec> = listOf(window, preedit)
+    /**
+     * The candidate bar's own look, which lives in `style:` rather than in
+     * `window:` — a split that costs the reader a page jump.
+     *
+     * They are listed here as well as on the style screen because they answer
+     * the same question as the two sections above ("what does the candidate bar
+     * look like"), and both screens write the same line: there is one value,
+     * two doors.
+     */
+    val style: ScalarSectionSpec =
+        ScalarSectionSpec(
+            name = "style",
+            listUnlisted = false,
+            fields =
+            listOf(
+                ScalarField(listOf("candidate_view_height"), ScalarField.Kind.INT, "${STYLE.candidateViewHeight}"),
+                ScalarField(listOf("candidate_text_size"), ScalarField.Kind.FLOAT, "${STYLE.candidateTextSize}"),
+                ScalarField(listOf("candidate_padding"), ScalarField.Kind.INT, "${STYLE.candidatePadding}"),
+                ScalarField(listOf("candidate_spacing"), ScalarField.Kind.FLOAT, "${STYLE.candidateSpacing}"),
+                ScalarField(listOf("candidate_border"), ScalarField.Kind.INT, "${STYLE.candidateBorder}"),
+                ScalarField(listOf("candidate_border_round"), ScalarField.Kind.FLOAT, "${STYLE.candidateBorderRound}"),
+                ScalarField(listOf("candidate_corner_radius"), ScalarField.Kind.FLOAT, "${STYLE.candidateCornerRadius}"),
+                ScalarField(
+                    listOf("candidate_text_vertical_bias"),
+                    ScalarField.Kind.FLOAT,
+                    "${STYLE.candidateTextVerticalBias}",
+                ),
+            ),
+        )
+
+    val sections: List<ScalarSectionSpec> = listOf(window, preedit, style)
 
     /**
      * What the file says for [field], or null when the line is missing (or

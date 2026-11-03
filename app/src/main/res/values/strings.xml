@@ -157,6 +157,8 @@
     <string name="cw_title">候选窗与预编辑</string>
     <string name="cw_section_window">候选窗 window</string>
     <string name="cw_section_preedit">预编辑 preedit</string>
+    <string name="cw_section_style">候选栏外观 style</string>
+    <string name="cw_section_style_hint">这几项在「样式 → 候选栏」里也有，改的是同一行；主题里没写的显示默认值。</string>
     <string name="cw_not_written">这个主题没有写这一段，输入法用自己的默认值。</string>
     <string name="cw_create_section">新建这一段</string>
     <string name="cw_section_created">已新建这一段</string>

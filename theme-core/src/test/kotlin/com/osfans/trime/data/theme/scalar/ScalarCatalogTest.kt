@@ -104,6 +104,64 @@ class ScalarCatalogTest :
             }
         }
 
+        Given("候选栏那几项写在 style 段里") {
+            val withStyle =
+                """
+                style:
+                  candidate_text_size: 18  #候选字号
+                  candidate_border_round: 4.0
+                  some_future_key: 1
+                """.trimIndent() + "\n"
+
+            Then("它们和 window/preedit 并列出现在同一页，共八项") {
+                ScalarCatalog.sections.map { it.name } shouldBe listOf("window", "preedit", "style")
+                ScalarCatalog.style.fields.map { it.id } shouldBe
+                    listOf(
+                        "candidate_view_height",
+                        "candidate_text_size",
+                        "candidate_padding",
+                        "candidate_spacing",
+                        "candidate_border",
+                        "candidate_border_round",
+                        "candidate_corner_radius",
+                        "candidate_text_vertical_bias",
+                    )
+            }
+
+            Then("默认值也来自模型：GeneralStyle 的候选栏默认") {
+                ScalarCatalog.style.fields.first { it.id == "candidate_text_size" }.defaultValue shouldBe "15.0"
+                ScalarCatalog.style.fields.first { it.id == "candidate_view_height" }.defaultValue shouldBe "28"
+            }
+
+            Then("文件里写了的读得到，没写的读 null") {
+                val file = fileWith(withStyle)
+                val style = ThemeScalarReader.read(file, "style")
+                ScalarCatalog.valueOf(style, ScalarCatalog.style.fields.first { it.id == "candidate_border_round" }) shouldBe
+                    "4.0"
+                ScalarCatalog.valueOf(style, ScalarCatalog.style.fields.first { it.id == "candidate_padding" }) shouldBe null
+            }
+
+            Then("原值写回去不动文件（含行尾注释）") {
+                val file = fileWith(withStyle)
+                val before = file.readText()
+                val style = ThemeScalarReader.read(file, "style")
+                ScalarCatalog.style.fields.forEach { field ->
+                    val value = ScalarCatalog.valueOf(style, field) ?: return@forEach
+                    ThemeScalarWriter.set(file, "style", field.path, value) shouldBe true
+                }
+                file.readText() shouldBe before
+            }
+
+            Then("style 段不列「文件里还有、这里没提供」的键——那些和候选栏无关") {
+                ScalarCatalog.style.listUnlisted shouldBe false
+                ScalarCatalog.window.listUnlisted shouldBe true
+                val file = fileWith(withStyle)
+                // 目录本身仍能算出来，只是这一页不显示。
+                ScalarCatalog.unlisted(ThemeScalarReader.read(file, "style"), ScalarCatalog.style)
+                    .map { it.joinToString(".") } shouldBe listOf("some_future_key")
+            }
+        }
+
         Given("a theme that writes neither section") {
             Then("both read as absent, which is the normal case") {
                 val file = fileWith("style:\n  key_text_size: 18\n")

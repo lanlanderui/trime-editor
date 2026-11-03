@@ -35,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.osfans.trime.editor.ui.R as UiR
 
 /**
  * The candidate window and the preedit line.
@@ -145,6 +146,7 @@ class CandidateWindowActivity : AppCompatActivity() {
 
         ScalarCatalog.sections.forEach { spec ->
             column.addView(heading(getString(sectionLabel(spec.name))))
+            sectionHint(spec.name)?.let { column.addView(text(getString(it), secondary = true)) }
             val section = sections.getValue(spec.name)
             if (section.range == null) {
                 column.addView(text(getString(R.string.cw_not_written), secondary = true))
@@ -157,7 +159,7 @@ class CandidateWindowActivity : AppCompatActivity() {
                 return@forEach
             }
 
-            val unlisted = ScalarCatalog.unlisted(section, spec)
+            val unlisted = if (spec.listUnlisted) ScalarCatalog.unlisted(section, spec) else emptyList()
             if (unlisted.isNotEmpty()) {
                 column.addView(
                     text(
@@ -338,10 +340,22 @@ class CandidateWindowActivity : AppCompatActivity() {
 
     private fun sectionLabel(name: String): Int = when (name) {
         "window" -> R.string.cw_section_window
+        "style" -> R.string.cw_section_style
         else -> R.string.cw_section_preedit
     }
 
-    /** Labels by `section/field-path`; unlisted fields never reach here. */
+    /** Extra line under a heading, only where the section needs explaining. */
+    private fun sectionHint(name: String): Int? = when (name) {
+        "style" -> R.string.cw_section_style_hint
+        else -> null
+    }
+
+    /**
+     * Labels by `section/field-path`; unlisted fields never reach here.
+     *
+     * The `style` rows are the same fields the style screen shows, so their labels come
+     * from `editor-ui`'s resources: one spelling, two screens.
+     */
     private fun fieldLabel(
         section: String,
         id: String,
@@ -363,6 +377,14 @@ class CandidateWindowActivity : AppCompatActivity() {
         "preedit/top_end_radius" -> R.string.cw_preedit_top_end
         "preedit/alpha" -> R.string.cw_preedit_alpha
         "preedit/foreground/font_size" -> R.string.cw_preedit_font
+        "style/candidate_view_height" -> UiR.string.style_candidate_view_height
+        "style/candidate_text_size" -> UiR.string.style_candidate_text_size
+        "style/candidate_padding" -> UiR.string.style_candidate_padding
+        "style/candidate_spacing" -> UiR.string.style_candidate_spacing
+        "style/candidate_border" -> UiR.string.style_candidate_border
+        "style/candidate_border_round" -> UiR.string.style_candidate_border_round
+        "style/candidate_corner_radius" -> UiR.string.style_candidate_corner_radius
+        "style/candidate_text_vertical_bias" -> UiR.string.style_candidate_text_vertical_bias
         else -> R.string.cw_field_unknown
     }
 
