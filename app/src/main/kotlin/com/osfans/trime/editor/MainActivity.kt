@@ -7,11 +7,15 @@ package com.osfans.trime.editor
 
 import android.Manifest
 import android.content.ActivityNotFoundException
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -61,6 +65,45 @@ class MainActivity : AppCompatActivity() {
         binding.changeDir.setOnClickListener { chooseDirectory() }
         FirstRunGuide.showIfFirstRun(this)
     }
+
+    /**
+     * Says what happened last time, once per start.
+     *
+     * There is nothing this app restores on launch — no last-opened theme, no
+     * unsaved draft — so "safe mode" has nothing to skip. What is worth doing is
+     * the part a user cannot get anywhere else: naming the crash and offering the
+     * log, instead of letting the app disappear quietly.
+     */
+    private fun reportLastCrash() {
+        if (!CrashLog.hasReport(this)) return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.crash_title)
+            .setMessage(R.string.crash_body)
+            .setNeutralButton(R.string.crash_view) { _, _ -> showCrashLog() }
+            .setNegativeButton(R.string.crash_later, null)
+            .setPositiveButton(R.string.crash_clear) { _, _ -> CrashLog.clear(this) }
+            .show()
+    }
+
+    private fun showCrashLog() {
+        val body = CrashLog.read(this) ?: return
+        val view =
+            TextView(this).apply {
+                text = body
+                textSize = 11f
+                setPadding(dp(16), dp(8), dp(16), dp(8))
+                typeface = Typeface.MONOSPACE
+            }
+        val scroll = ScrollView(this).apply { addView(view) }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.crash_log_title)
+            .setView(scroll)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(R.string.crash_clear) { _, _ -> CrashLog.clear(this) }
+            .show()
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main, menu)

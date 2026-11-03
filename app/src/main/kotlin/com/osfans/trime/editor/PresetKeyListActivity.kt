@@ -84,6 +84,11 @@ class PresetKeyListActivity : AppCompatActivity() {
         binding.keys.layoutManager = LinearLayoutManager(this)
         binding.keys.adapter = adapter
         binding.keys.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        intent.getStringExtra(EXTRA_QUERY)?.takeIf { it.isNotBlank() }?.let { query ->
+            // Arriving from a diagnostic: put the reader on the entry it named.
+            binding.search.setText(query)
+            binding.search.setSelection(query.length)
+        }
         binding.search.addTextChangedListener(
             object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -218,6 +223,7 @@ class PresetKeyListActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_THEME_ID = "theme_id"
         private const val EXTRA_THEME_NAME = "theme_name"
+        private const val EXTRA_QUERY = "query"
 
         /** The fields the editor form exposes, in file spelling. */
         private val FIELD_NAMES =
@@ -239,8 +245,10 @@ class PresetKeyListActivity : AppCompatActivity() {
             context: Context,
             themeId: String,
             themeName: String,
+            query: String = "",
         ): Intent = Intent(context, PresetKeyListActivity::class.java)
             .putExtra(EXTRA_THEME_ID, themeId)
             .putExtra(EXTRA_THEME_NAME, themeName)
+            .putExtra(EXTRA_QUERY, query)
     }
 }

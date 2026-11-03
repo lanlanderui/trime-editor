@@ -104,6 +104,11 @@ class ThemePreviewActivity : AppCompatActivity() {
                 return true
             }
 
+            R.id.action_diagnostics -> {
+                startActivity(DiagnosticsActivity.intent(this, themeId, themeName))
+                return true
+            }
+
             R.id.action_edit_window -> {
                 startActivity(CandidateWindowActivity.intent(this, themeId, themeName))
                 return true
@@ -149,7 +154,7 @@ class ThemePreviewActivity : AppCompatActivity() {
         hasLoaded = true
         binding.boardHost.visibility = View.VISIBLE
         buildSchemeChips(loaded)
-        binding.detail.text = findingsText(success.findings)
+        binding.detail.text = findingsSummary(success.findings)
         invalidateOptionsMenu()
     }
 
@@ -247,20 +252,18 @@ class ThemePreviewActivity : AppCompatActivity() {
         }
     }
 
-    private fun findingsText(findings: List<ThemeDiagnostics.Finding>?): String {
+    /**
+     * One line, not the whole report.
+     *
+     * The findings are a list of places to go — dumping twelve of them into a
+     * text block under the keyboard makes the page look broken and still leaves
+     * the reader unable to act. The list lives on its own screen; this says how
+     * many there are.
+     */
+    private fun findingsSummary(findings: List<ThemeDiagnostics.Finding>?): String {
         if (findings == null) return getString(R.string.preview_findings_unknown)
         if (findings.isEmpty()) return getString(R.string.preview_findings_clean)
-        return buildString {
-            append(getString(R.string.preview_findings, findings.size))
-            findings.take(MAX_FINDINGS).forEach { finding ->
-                append("\n\n")
-                append(finding.severity.name)
-                append("  ")
-                append(finding.path.orEmpty())
-                append("\n")
-                append(finding.message)
-            }
-        }
+        return getString(R.string.preview_findings_short, findings.size)
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -272,7 +275,6 @@ class ThemePreviewActivity : AppCompatActivity() {
         private const val EXTRA_THEME_NAME = "theme_name"
         private const val DEFAULT_SCHEME = "default"
         private const val FOLLOW_SYSTEM_TAG = "\u0000system"
-        private const val MAX_FINDINGS = 12
 
         fun intent(
             context: Context,

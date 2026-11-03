@@ -17,6 +17,8 @@ class EditorApplication : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        // 先记录再交给系统：日志要留给下一次启动解释「上次为什么没了」。
+        CrashLog.install(this)
         // 共享库的接缝：没有 librime 的那一套实现
         EditorPrefs.install(this)
         EditorServices.install()

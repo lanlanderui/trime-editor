@@ -35,11 +35,23 @@ object ThemeFilesManager {
      * Reads the theme name from its source file, expanding the supported DSL
      * subset so a name provided by an `__include`d node is resolved too.
      */
-    private fun readSourceName(configId: String, file: File): String? = runCatching { ThemeLoader.loadSourceNode(configId, file)?.get("name")?.string }
-        .getOrElse { e ->
-            Timber.w("Failed to decode theme file ${file.absolutePath}: ${e.message}")
-            null
+    private fun readSourceName(configId: String, file: File): String? {
+        // Fast path first: a listing wants one string per file, and expanding the
+        // whole DSL to get it costs a full read + decode per theme.
+        fastNameOf(file)?.let { return it }
+        return runCatching { ThemeLoader.loadSourceNode(configId, file)?.get("name")?.string }
+            .getOrElse { e ->
+                Timber.w("Failed to decode theme file ${file.absolutePath}: ${e.message}")
+                null
+            }
+    }
+
+    /** `name:` from the first lines of [file], without expanding the theme. */
+    private fun fastNameOf(file: File): String? = runCatching {
+        file.bufferedReader().useLines { lines ->
+            ThemeNameReader.fastName(lines.take(ThemeNameReader.SCAN_LINES).toList())
         }
+    }.getOrNull()
 
     /** Reads the theme name from the deployed artifact, when it exists. */
     private fun readDeployedName(configId: String): String? {

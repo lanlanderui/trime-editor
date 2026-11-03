@@ -24,7 +24,6 @@
 
     <string name="preview_load_failed">这个主题读不出来</string>
     <string name="preview_scheme_follow_system">跟随系统</string>
-    <string name="preview_no_scheme">这个主题没有声明配色</string>
     <string name="preview_findings">静态检查：%1$d 处需要注意</string>
     <string name="preview_findings_clean">静态检查通过</string>
     <string name="preview_findings_unknown">静态检查未运行</string>
@@ -179,4 +178,23 @@
     <string name="cw_preedit_top_end">右上圆角 top_end_radius</string>
     <string name="cw_preedit_alpha">不透明度 alpha</string>
     <string name="cw_preedit_font">字号 foreground.font_size</string>
+
+    <!-- 静态检查（D8a） -->
+    <string name="action_diagnostics">静态检查</string>
+    <string name="dg_title">静态检查</string>
+    <string name="dg_clean">没有发现问题。</string>
+    <string name="dg_summary">共 %1$d 处：%2$d 个错误、%3$d 个警告。点一条跳到对应的编辑页。</string>
+    <string name="dg_severity_error">错误</string>
+    <string name="dg_severity_warning">警告</string>
+    <string name="dg_severity_info">提示</string>
+    <string name="dg_no_jump">这一项没有对应的编辑页</string>
+    <string name="preview_findings_short">静态检查：%1$d 处需要注意（点菜单「静态检查」查看）</string>
+
+    <!-- 崩溃兜底（D8b） -->
+    <string name="crash_title">上次异常退出</string>
+    <string name="crash_body">编辑器上次没有正常结束，日志已经留在本机。可以查看，也可以删掉。</string>
+    <string name="crash_view">查看日志</string>
+    <string name="crash_clear">删除日志</string>
+    <string name="crash_later">稍后</string>
+    <string name="crash_log_title">崩溃日志</string>
 </resources>
