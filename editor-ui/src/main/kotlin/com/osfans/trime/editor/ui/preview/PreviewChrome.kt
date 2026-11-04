@@ -77,8 +77,28 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
         applied?.let { candidateBar.show(it) }
     }
 
-    /** 候选栏：真实底色 + 真实边框 + 工具条占位。 */
+    /**
+     * 候选栏：真实底色 + 边框 + 工具条 + 几组示例候选。
+     *
+     * 示例是固定的四个字，各带一条编码：作用是把 `candidate_text_color`、
+     * `hilited_candidate_text_color`、`hilited_candidate_back_color`、
+     * `comment_text_color` 摆到真实底色上看——只看色块判断不出对比度，得看字。
+     * 第一个画成高亮态，其余是常态。
+     */
     private class CandidateBar(context: Context) : View(context) {
+        private class Sample(
+            val text: String,
+            val comment: String,
+        )
+
+        private val samples =
+            listOf(
+                Sample("同", "〔门口 kk〕"),
+                Sample("通", "〔乚用 zy〕"),
+                Sample("统", "〔纟 允 sy〕"),
+                Sample("痛", "〔广用 by〕"),
+            )
+
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
 
         private val line =
@@ -87,11 +107,8 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
                 strokeWidth = context.dp(1).toFloat()
             }
 
-        private val label =
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = context.dp(9).toFloat()
-                textAlign = Paint.Align.CENTER
-            }
+        private val word = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val comment = Paint(Paint.ANTI_ALIAS_FLAG)
 
         private val rect = RectF()
         private val box = RectF()
@@ -100,9 +117,16 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
         private var background = 0xFFF2F2F2.toInt()
         private var borderColor = 0
         private var glyphColor = 0xFF333333.toInt()
+        private var wordColor = 0xFF333333.toInt()
+        private var commentColor = 0xFF888888.toInt()
+        private var hilitedWord = 0
+        private var hilitedComment = 0
+        private var hilitedBack = 0
         private var borderWidth = 0f
         private var radius = 0f
-        private var title = ""
+        private var itemRadius = 0f
+        private var itemPadding = 0f
+        private var itemSpacing = 0f
 
         private var primary: ToolBar.Button? = null
         private var buttons: List<ToolBar.Button> = emptyList()
@@ -113,12 +137,22 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
             val style = theme.style
             val bar = style.candidateViewHeight + style.commentHeight
             heightPx = context.dp(bar)
-            title = context.getString(R.string.preview_band_candidate) + " " + bar
+            contentDescription = context.getString(R.string.preview_band_candidate) + " " + bar
             background = color("candidate_background", 0xFFF2F2F2.toInt())
             borderColor = color("candidate_border_color", 0x22000000)
             glyphColor = color("candidate_text_color", 0xFF333333.toInt())
+            wordColor = glyphColor
+            commentColor = color("comment_text_color", 0xFF888888.toInt())
+            hilitedWord = color("hilited_candidate_text_color", wordColor)
+            hilitedComment = color("hilited_comment_text_color", hilitedWord)
+            hilitedBack = color("hilited_candidate_back_color", 0)
             borderWidth = context.dp(style.candidateBorder).toFloat()
             radius = context.dp(style.candidateBorderRound.roundToInt()).toFloat()
+            itemRadius = context.dp(style.candidateCornerRadius.roundToInt()).toFloat()
+            itemPadding = context.dp(style.candidatePadding).toFloat()
+            itemSpacing = style.candidateSpacing * resources.displayMetrics.density
+            word.textSize = style.candidateTextSize * resources.displayMetrics.scaledDensity
+            comment.textSize = style.commentTextSize * resources.displayMetrics.scaledDensity
 
             primary = theme.toolBar.primaryButton
             buttons = theme.toolBar.buttons
@@ -159,15 +193,34 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
                 drawChip(canvas, spacing.toFloat(), primarySize, primaryButton)
             }
 
-            // 高度写在中缝：没有候选项时这里本来就是空的。
-            val leftEdge = spacing + (primarySize?.plus(spacing) ?: 0)
-            val rightEdge = right + spacing
-            if (rightEdge - leftEdge > context.dp(70)) {
-                label.color = (glyphColor and 0x00FFFFFF) or 0x70000000
-                val baseline = height / 2f - (label.descent() + label.ascent()) / 2f
-                canvas.drawText(title, (leftEdge + rightEdge) / 2f, baseline, label)
+            drawSamples(canvas, (spacing + (primarySize?.plus(spacing) ?: 0)).toFloat(), (right + spacing).toFloat())
+        }
+
+        /** 候选词和它的编码；第一个是高亮态，画到放不下为止。 */
+        private fun drawSamples(
+            canvas: Canvas,
+            leftEdge: Float,
+            rightEdge: Float,
+        ) {
+            var x = leftEdge + itemPadding
+            samples.forEachIndexed { index, sample ->
+                val wordWidth = word.measureText(sample.text)
+                val itemWidth = wordWidth + comment.measureText(sample.comment) + itemPadding * 2
+                if (x + itemWidth > rightEdge) return
+                if (index == 0 && Color.alpha(hilitedBack) > 0) {
+                    box.set(x, 0f, x + itemWidth, height.toFloat())
+                    fill.color = hilitedBack
+                    canvas.drawRoundRect(box, itemRadius, itemRadius, fill)
+                }
+                word.color = if (index == 0) hilitedWord else wordColor
+                comment.color = if (index == 0) hilitedComment else commentColor
+                canvas.drawText(sample.text, x + itemPadding, baselineOf(word), word)
+                canvas.drawText(sample.comment, x + itemPadding + wordWidth, baselineOf(comment), comment)
+                x += itemWidth + itemSpacing
             }
         }
+
+        private fun baselineOf(paint: Paint): Float = height / 2f - (paint.descent() + paint.ascent()) / 2f
 
         private fun drawChip(
             canvas: Canvas,
