@@ -62,8 +62,8 @@ class ThemeBoard private constructor(
     /** Draws [theme] at the width the board has, or will have once it is measured. */
     fun show(theme: Theme) {
         this.theme = theme
-        // 候选栏和底部内边距都按这份主题的样式摆：换主题时它们也要跟着变。
-        chrome.applyStyle(theme.style)
+        // 候选栏和底部内边距都按这份主题摆：换主题时它们也要跟着变。
+        chrome.applyStyle(theme)
         if (width > 0) build(width)
     }
 

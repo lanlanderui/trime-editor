@@ -26,6 +26,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.ThemeLoader
 import com.osfans.trime.data.theme.ThemeStyleWriter
@@ -181,6 +182,9 @@ class KeyboardEditorActivity : AppCompatActivity() {
                 return@launch
             }
             theme = loaded.first
+            // 候选栏是按「当前挂载的主题」取色的（ColorManager），不挂上就会拿
+            // 上一次别的主题的颜色来画——预览就成了另一个主题的样子。
+            ColorManager.attachTheme(loaded.first)
             sourceFile = loaded.second
             afterReload(select = true)
         }
@@ -237,7 +241,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
         val t = theme ?: return
         val d = draft ?: return
         val config = d.toConfig()
-        chrome.applyStyle(t.style)
+        chrome.applyStyle(t)
         canvas.applyThemeMetrics(t)
         val keyboard = Keyboard(this, t, canvasWidth, config)
         canvas.keyboard = keyboard
