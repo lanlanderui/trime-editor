@@ -65,6 +65,18 @@ constructor(
             invalidate()
         }
 
+    /**
+     * 反方向：真实键序号 → 草稿序号。
+     *
+     * 点击命中拿到的是真实键序号（[keyboard] 里的第几个 Key），面板要的是草稿
+     * 序号。两个方向都要带，用一个去顶另一个会在第一个占位键之后整体错位。
+     */
+    var keyToDraft: IntArray = IntArray(0)
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     /** Where the action-less keys sit; they are the layout's indents. */
     class BlankMark(
         val draftIndex: Int,
@@ -292,7 +304,10 @@ constructor(
         for (i in keys.indices.reversed()) {
             val key = keys[i]
             if (x >= key.x && x <= key.x + key.width && y >= key.y && y <= key.y + key.height) {
-                return draftToKey.getOrNull(i)?.takeIf { it >= 0 }
+                // i 是**真实键**的序号，要走 keyToDraft；draftToKey 是反方向的。
+                // 用反了的话，第一个占位键之前碰巧对（两边都是 i），之后每过一个
+                // 占位键就整体错位一格——点空格会选中它前面的键。
+                return keyToDraft.getOrNull(i)?.takeIf { it >= 0 }
             }
         }
         return null

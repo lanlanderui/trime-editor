@@ -247,6 +247,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
         canvas.state = KeyboardCanvasView.State(weights, FloatArray(rows.size) { rows[it].weightSum })
         val map = d.indexMap(keyboard.keys.size)
         canvas.draftToKey = map.draftToKey
+        canvas.keyToDraft = map.keyToDraft
         canvas.blanks = blanksOf(rows, d, keyboard)
         canvas.selectedIndex = selected
         fillInspector()
