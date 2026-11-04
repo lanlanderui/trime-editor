@@ -84,7 +84,11 @@ class ThemeBoard private constructor(
     }
 
     /** Repaints without rebuilding; enough after a colour scheme switch. */
-    fun refresh() = view.invalidate()
+    fun refresh() {
+        view.invalidate()
+        // 候选栏的底色和边框是 applyStyle 时解析好存下的，只重画板子不会带上它。
+        chrome.refreshColors()
+    }
 
     private fun build(targetWidth: Int) {
         width = targetWidth

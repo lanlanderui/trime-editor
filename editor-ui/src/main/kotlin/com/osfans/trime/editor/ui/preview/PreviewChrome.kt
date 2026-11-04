@@ -40,6 +40,9 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
 
     private val bottomPad = Band(context, context.getString(R.string.preview_band_bottom))
 
+    /** 上一次摆带子用的主题；切配色时要拿它重新解析颜色。 */
+    private var applied: Theme? = null
+
     init {
         orientation = VERTICAL
         addView(candidateBar, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
@@ -59,8 +62,19 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
      * `InputBarDelegate` 就是这两个数相加当整条的高度。
      */
     fun applyStyle(theme: Theme) {
+        applied = theme
         candidateBar.show(theme)
         bottomPad.show(context.dp(theme.style.keyboardPaddingBottom), theme.style.keyboardPaddingBottom)
+    }
+
+    /**
+     * 重新取色，不动尺寸。
+     *
+     * 颜色是在 [applyStyle] 里解析好存下来的，切配色时只重画键盘板不会带上它——
+     * 候选栏会一直是切之前那个颜色。输入法的 `InputBar.refreshColors()` 做的也是这件事。
+     */
+    fun refreshColors() {
+        applied?.let { candidateBar.show(it) }
     }
 
     /** 候选栏：真实底色 + 真实边框 + 工具条占位。 */
