@@ -4,12 +4,17 @@
 
 [versions]
 androidGradlePlugin = "9.4.1"
+iconics = "5.4.0"
 kotlin = "2.3.21"
 navigation = "2.9.8"
 splitties = "3.0.0"
 kotest = "6.0.7"
 
 [libraries]
+# 工具条按钮的 `ic@` 样式就是这套图标：输入法用同一个库、同一套 cmd_ 前缀，
+# 预览照着画才不会出现「编辑器和真机各画一个样」。
+iconics-core = { module = "com.mikepenz:iconics-core", version.ref = "iconics" }
+community-material-typeface = { module = "com.mikepenz:community-material-typeface", version = "7.0.96.1-kotlin" }
 androidx-activity = { module = "androidx.activity:activity-ktx", version = "1.10.1" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.7.1" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version = "2.2.1" }

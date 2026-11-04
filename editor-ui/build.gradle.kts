@@ -30,4 +30,9 @@ dependencies {
     implementation(libs.splitties.views.dsl.recyclerview)
     implementation(libs.splitties.views.recyclerview)
     implementation(libs.timber)
+    // 工具条按钮的图标：与输入法同一个库、同一套 cmd_ 前缀
+    implementation(libs.iconics.core)
+    implementation(libs.community.material.typeface) {
+        artifact { type = "aar" }
+    }
 }

@@ -7,6 +7,7 @@
 package com.osfans.trime.editor.ui.preview
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.DashPathEffect
@@ -14,6 +15,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.view.View
 import android.widget.LinearLayout
+import com.mikepenz.iconics.IconicsDrawable
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.model.ToolBar
@@ -30,8 +32,10 @@ import kotlin.math.roundToInt
  *
  * 候选栏按主题真实画：底色 `candidate_background`、边框 `candidate_border_color`、
  * 圆角 `candidate_border_round`、边宽 `candidate_border`，与输入法的 `InputBarDelegate`
- * 用的是同一组数。工具条按 `tool_bar` 的按钮数量与尺寸画出占位框——图标是主题自带的
- * 图片或字体，编辑器这边画不出来，但按钮有几个、占多宽，是能看见的。
+ * 用的是同一组数。工具条按 `tool_bar` 画：按钮位置与尺寸照 `primary_button` /
+ * `buttons` / `button_spacing`，按钮里的内容照 `foreground`——`ic@` 用输入法同一套
+ * `cmd_` 图标字体，其余按文字画（中英切换那个键写的就是「中」）。
+ * 按钮本身只有背景色、没有边框，`ToolBar.Button.Background` 里也没有这一项。
  *
  * 底部那条带子是纯示意：淡填充 + 名字 + 高度，高度为 0 时只留一条虚线。
  */
@@ -109,6 +113,14 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
 
         private val word = Paint(Paint.ANTI_ALIAS_FLAG)
         private val comment = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        private val content =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                textAlign = Paint.Align.CENTER
+            }
+
+        /** 图标按「样式 + 字号」缓存：每次重画都新建一个 drawable 太浪费。 */
+        private val icons = mutableMapOf<String, IconicsDrawable?>()
 
         private val rect = RectF()
         private val box = RectF()
@@ -231,14 +243,68 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
             val top = (height - size) / 2f
             box.set(left, top, left + size, top + size)
             val circle = config.background.type == ToolBar.Button.Background.Type.CIRCLE
+            // 只有背景色，没有边框：`ToolBar.Button.Background` 里就没有边宽这一项，
+            // 输入法也不描边。背景是 0x00 时按钮只剩图标本身，那正是主题的意思。
             val chip = config.background.normal.takeIf { it.isNotEmpty() }?.let { color(it, Color.TRANSPARENT) }
             if (chip != null && Color.alpha(chip) > 0) {
                 fill.color = chip
                 if (circle) canvas.drawCircle(box.centerX(), box.centerY(), size / 2f, fill) else canvas.drawRoundRect(box, cornerOf(config), cornerOf(config), fill)
             }
-            // 图标画不出来（主题自带的图片/字体），但按钮在哪儿、有多大要看得见。
-            line.color = (glyphColor and 0x00FFFFFF) or 0x59000000
-            if (circle) canvas.drawCircle(box.centerX(), box.centerY(), size / 2f, line) else canvas.drawRoundRect(box, cornerOf(config), cornerOf(config), line)
+            drawContent(canvas, box, size, config)
+        }
+
+        /**
+         * 按钮里的东西。
+         *
+         * `ic@` 是图标，用的就是输入法那套 `community-material-typeface` 的 `cmd_`
+         * 前缀，所以预览和真机画的是同一个字形；其余按文字画（中英切换那个键写的就是
+         * 「中」）。`*.png` 这类主题自带图片读不到，只留边框——这是预览，不是渲染器。
+         */
+        private fun drawContent(
+            canvas: Canvas,
+            box: RectF,
+            size: Int,
+            config: ToolBar.Button,
+        ) {
+            val foreground = config.foreground
+            // 有 option_styles 的按钮按状态二选一；预览没有状态，取第一个（未开启）。
+            val style = if (foreground.optionStyles.size == 2) foreground.optionStyles[0] else foreground.style
+            val tint =
+                foreground.normal.takeIf { it.isNotEmpty() }?.let { color(it, glyphColor) } ?: glyphColor
+            when {
+                style.startsWith("ic@") -> {
+                    val icon = icon(style, foreground.fontSize) ?: return
+                    val w = icon.intrinsicWidth.takeIf { it > 0 } ?: size / 2
+                    val h = icon.intrinsicHeight.takeIf { it > 0 } ?: size / 2
+                    icon.colorList = ColorStateList.valueOf(tint)
+                    icon.setBounds(
+                        (box.centerX() - w / 2f).roundToInt(),
+                        (box.centerY() - h / 2f).roundToInt(),
+                        (box.centerX() + w / 2f).roundToInt(),
+                        (box.centerY() + h / 2f).roundToInt(),
+                    )
+                    icon.draw(canvas)
+                }
+
+                style.isNotEmpty() && !style.contains('.') -> {
+                    content.color = tint
+                    content.textSize = foreground.fontSize * resources.displayMetrics.scaledDensity
+                    canvas.drawText(style, box.centerX(), box.centerY() - (content.descent() + content.ascent()) / 2f, content)
+                }
+            }
+        }
+
+        private fun icon(
+            style: String,
+            fontSize: Float,
+        ): IconicsDrawable? = icons.getOrPut("$style@$fontSize") {
+            runCatching {
+                val px = context.dp(fontSize.roundToInt())
+                IconicsDrawable(context, "cmd_" + style.substring(3)).apply {
+                    sizeXPx = px
+                    sizeYPx = px
+                }
+            }.getOrNull()
         }
 
         private fun cornerOf(config: ToolBar.Button): Float = context.dp(config.background.cornerRadius.toInt()).toFloat()
