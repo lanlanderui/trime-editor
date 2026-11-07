@@ -211,6 +211,8 @@
     <string name="preview_findings_count_label">处需要注意</string>
     <string name="preview_findings_clean_label">静态检查通过</string>
     <string name="preview_info_title">这份主题</string>
+    <string name="preview_edit_title">快捷编辑</string>
+    <string name="preview_edit_go">编辑</string>
     <string name="preview_info_schemes">配色方案</string>
     <string name="preview_info_keyboards">键盘布局</string>
     <string name="preview_info_keys">自定义动作</string>
@@ -254,7 +256,7 @@
     <string name="hero_current_theme">当前主题</string>
     <string name="hero_other_themes">其余 %1$d 个</string>
     <string name="hero_no_other_theme">只有这一份主题</string>
-    <string name="workbench_hint">点击主题进入编辑；长按可重命名、复制、在文件管理器中打开。</string>
+    <string name="workbench_hint">点击当前主题或下面任意一份主题进入编辑；底部工具栏可更换目录、刷新、切换外观或回到输入法。</string>
     <string name="dock_dir">目录</string>
     <string name="dock_refresh">刷新</string>
     <string name="dock_appearance">外观</string>

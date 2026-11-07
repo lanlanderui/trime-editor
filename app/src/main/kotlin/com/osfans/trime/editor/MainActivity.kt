@@ -47,6 +47,9 @@ class MainActivity : EditorActivity() {
 
     private val adapter = ThemeCardAdapter(::openTheme)
 
+    /** 英雄区当前展示的那一份；英雄区自己也要能点进编辑，所以得留住它。 */
+    private var currentHero: ThemeEntry? = null
+
     private var loadJob: Job? = null
 
     /** Coming back from the "all files access" screen: re-check, then load. */
@@ -75,6 +78,9 @@ class MainActivity : EditorActivity() {
         binding.dockAppearance.setOnClickListener { startActivity(Intent(this, AppearanceActivity::class.java)) }
         binding.dockIme.setOnClickListener { InputMethodApp.launch(this) }
         binding.heroMenu.setOnClickListener { showHeroMenu(it) }
+        // 英雄区是这一页的主语，点它就要能进编辑；原来只有下面列表的行能点，
+        // 而页面提示写的却是「点击主题进入编辑」——主语自己点不动。
+        binding.heroBlock.setOnClickListener { currentHero?.let(::openTheme) }
         // 崩溃提示优先于首启引导：它解释「上次为什么没了」，引导讲「怎么用」。
         // 两者同时需要，只有「第一次启动就崩过」这一种情况，那时先解释崩溃。
         if (!reportLastCrash()) FirstRunGuide.showIfFirstRun(this)
@@ -207,6 +213,7 @@ class MainActivity : EditorActivity() {
      */
     private fun present(entries: List<ThemeEntry>) {
         if (entries.isEmpty()) {
+            currentHero = null
             adapter.submit(emptyList())
             showPlaceholder(
                 title = getString(R.string.state_empty_title),
@@ -216,6 +223,7 @@ class MainActivity : EditorActivity() {
             return
         }
         val hero = entries.firstOrNull { it.id == EditorPrefs.selectedTheme } ?: entries.first()
+        currentHero = hero
         val others = entries.filter { it.id != hero.id }
         binding.heroName.text = hero.name
         binding.heroMeta.text = hero.id
@@ -289,6 +297,8 @@ class MainActivity : EditorActivity() {
         action: String,
         onAction: () -> Unit,
     ) {
+        // 列表不粘了，英雄区也不该留着上一份主题还能点进去。
+        currentHero = null
         binding.themes.visibility = View.GONE
         binding.placeholder.visibility = View.VISIBLE
         binding.placeholderTitle.text = title

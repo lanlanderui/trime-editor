@@ -173,6 +173,9 @@ class ThemePreviewActivity : EditorActivity() {
         binding.boardHost.visibility = View.GONE
         binding.schemeBar.visibility = View.GONE
         binding.diagBox.visibility = View.GONE
+        // 主题没读出来时不能留着上一份的编辑入口：点了会拿旧 themeId 开页面。
+        binding.infoBlock.visibility = View.GONE
+        binding.infoBlock.removeAllViews()
         binding.detail.visibility = View.VISIBLE
         binding.detail.text = buildString {
             append(getString(R.string.preview_load_failed))
@@ -277,7 +280,11 @@ class ThemePreviewActivity : EditorActivity() {
     }
 
     /**
-     * 这份主题的规模：四行，全是已经读进内存的数字。
+     * 这份主题的规模 + 编辑入口，同一批卡片。
+     *
+     * 原来四行只是数字，真正能点进去的入口全塞在右上角 ⋯ 里——看着像一份
+     * 报表，其实该点的是这几行。现在每一行都直接跳到它数的那个东西的编辑页；
+     * 菜单里剩下、统计卡没覆盖的入口，再单独列一组「快捷编辑」。
      *
      * 不写「作者」：主题级没有这个字段（只有每个键盘自己有 `author`），
      * 硬凑一个出来就是编。也不写行数——那要把 200KB 再数一遍。
@@ -287,38 +294,53 @@ class ThemePreviewActivity : EditorActivity() {
         box.removeAllViews()
         box.visibility = View.VISIBLE
 
-        val header = layoutInflater.inflate(UiR.layout.pref_proof_chapter, box, false)
-        header.findViewById<TextView>(UiR.id.proofChapterTitle).text = getString(R.string.preview_info_title)
-        header.findViewById<TextView>(UiR.id.proofChapterExtra).visibility = View.GONE
-        box.addView(header)
+        fun chapter(title: String) {
+            val header = layoutInflater.inflate(UiR.layout.pref_proof_chapter, box, false)
+            header.findViewById<TextView>(UiR.id.proofChapterTitle).text = title
+            header.findViewById<TextView>(UiR.id.proofChapterExtra).visibility = View.GONE
+            box.addView(header)
+        }
 
+        /** 一行统计/入口：右侧「值 ›」既是读数也是「可以点」的提示。 */
         fun row(
             label: String,
             key: String,
             value: String,
+            onClick: () -> Unit,
         ) {
             val view = layoutInflater.inflate(UiR.layout.pref_proof_value, box, false)
             view.findViewById<TextView>(UiR.id.proofName).text = label
             view.findViewById<TextView>(UiR.id.proofKey).text = key
-            view.findViewById<TextView>(UiR.id.proofValue).text = value
+            view.findViewById<TextView>(UiR.id.proofValue).text = "$value  ›"
+            view.isClickable = true
+            view.setOnClickListener { onClick() }
             box.addView(view)
         }
 
+        val colors = { startActivity(ColorEditorActivity.intent(this, themeId, themeName)) }
+        val layouts = { startActivity(KeyboardListActivity.intent(this, themeId, themeName)) }
+        val keys = { startActivity(PresetKeyListActivity.intent(this, themeId, themeName)) }
+
+        chapter(getString(R.string.preview_info_title))
         row(
             getString(R.string.preview_info_schemes),
             "preset_color_schemes",
             getString(R.string.preview_info_count, theme.presetColorSchemes.size),
+            colors,
         )
         row(
             getString(R.string.preview_info_keyboards),
             "preset_keyboards",
             getString(R.string.preview_info_count, theme.presetKeyboards.size),
+            layouts,
         )
         row(
             getString(R.string.preview_info_keys),
             "preset_keys",
             getString(R.string.preview_info_count, theme.presetKeys.size),
+            keys,
         )
+        // `dark_scheme` 属于配色方案，编辑器里就是「方案」那一段。
         row(
             getString(R.string.preview_info_pairs),
             "dark_scheme",
@@ -326,7 +348,32 @@ class ThemePreviewActivity : EditorActivity() {
                 R.string.preview_info_count,
                 theme.presetColorSchemes.count { it.value.containsKey("dark_scheme") },
             ),
+            colors,
         )
+
+        // 菜单里剩下的入口，统计卡没有对应数字，单独列一行一卡。
+        chapter(getString(R.string.preview_edit_title))
+        fun shortcut(
+            label: String,
+            key: String,
+            onClick: () -> Unit,
+        ) = row(label, key, getString(R.string.preview_edit_go), onClick)
+
+        shortcut(getString(R.string.action_edit_style), "style") {
+            startActivity(StyleEditorActivity.intent(this, themeId, themeName))
+        }
+        shortcut(getString(R.string.action_edit_window), "window") {
+            startActivity(CandidateWindowActivity.intent(this, themeId, themeName))
+        }
+        shortcut(getString(R.string.action_edit_toolbar), "tool_bar") {
+            startActivity(ToolBarActivity.intent(this, themeId, themeName))
+        }
+        shortcut(getString(R.string.action_diagnostics), "diagnostics") {
+            startActivity(DiagnosticsActivity.intent(this, themeId, themeName))
+        }
+        if (InputMethodApp.isInstalled(this)) {
+            shortcut(getString(R.string.action_back_to_ime), "ime") { InputMethodApp.launch(this) }
+        }
     }
 
     /**
@@ -356,9 +403,10 @@ class ThemePreviewActivity : EditorActivity() {
             ),
         )
         binding.diagGo.visibility = if (clean) View.GONE else View.VISIBLE
-        binding.diagGo.setOnClickListener {
-            startActivity(DiagnosticsActivity.intent(this, themeId, themeName))
-        }
+        // 整张卡都是入口：只留右侧「逐条查看」可点，人去点中间那行大字会没反应。
+        val openDiagnostics = { startActivity(DiagnosticsActivity.intent(this, themeId, themeName)) }
+        binding.diagGo.setOnClickListener { openDiagnostics() }
+        binding.diagBox.setOnClickListener { openDiagnostics() }
     }
 
     /** 选中的方案是一块实心墨，其余是描边——和工具条那排按钮同一种语言。 */
