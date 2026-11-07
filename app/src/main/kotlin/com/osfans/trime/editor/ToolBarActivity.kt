@@ -239,7 +239,9 @@ class ToolBarActivity : EditorActivity() {
                     )
                     background =
                         GradientDrawable().apply {
-                            cornerRadius = dp(4).toFloat()
+                            // 画的是主题工具条按钮的示意（不是编辑器控件），
+                            // 但形状跟编辑器里的胶囊对齐，免得这一条看着像旧皮肤。
+                            cornerRadius = UiTokens.dimen(context, UiR.attr.ui_radius_button).toFloat()
                             if (primary) {
                                 setColor(UiTokens.color(context, UiR.attr.ui_ink))
                             } else {

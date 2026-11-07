@@ -1,39 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  预览页的编辑入口。页面里本来就有「配色方案 / 键盘布局」等卡片可以直接点，
-  这两项再挂在 ActionBar 上会占掉 411dp 手机宽度的标题空间（标题被截成
-  「templa...」）。统一收进 ⋯，跟其余五页一样。
+  预览页的 ⋯ 菜单只放「页面没有的动作」。
+
+  八个编辑入口已经在页面上铺成卡片（四张统计卡 + 「快捷编辑」分组），
+  再在菜单里列一份就是两套入口、两处要同步条件显示。剩下的「目录」由
+  OutlineMenu 动态加，这里只留「回到输入法」（未启用输入法时自动隐藏）。
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <item
-        android:id="@+id/action_edit_style"
-        android:title="@string/action_edit_style"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_edit_colors"
-        android:title="@string/action_edit_colors"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_diagnostics"
-        android:title="@string/action_diagnostics"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_edit_window"
-        android:title="@string/action_edit_window"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_edit_toolbar"
-        android:title="@string/action_edit_toolbar"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_edit_keys"
-        android:title="@string/action_edit_keys"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_edit_layout"
-        android:title="@string/action_edit_layout"
-        app:showAsAction="never" />
     <item
         android:id="@+id/action_back_to_ime"
         android:title="@string/action_back_to_ime"

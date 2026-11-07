@@ -78,8 +78,6 @@ class ThemePreviewActivity : EditorActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        menu.findItem(R.id.action_edit_style)?.isVisible = hasLoaded
-        menu.findItem(R.id.action_edit_colors)?.isVisible = hasLoaded
         menu.findItem(R.id.action_back_to_ime)?.isVisible = InputMethodApp.isInstalled(this)
         return super.onPrepareOptionsMenu(menu)
     }
@@ -93,44 +91,10 @@ class ThemePreviewActivity : EditorActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (OutlineMenu.handle(this, item, themeId, themeName)) return true
+        // 编辑入口全部搬到页面卡片上，菜单里不再重复一份（见 menu/preview.xml）。
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
-                return true
-            }
-
-            R.id.action_edit_style -> {
-                startActivity(StyleEditorActivity.intent(this, themeId, themeName))
-                return true
-            }
-
-            R.id.action_edit_colors -> {
-                startActivity(ColorEditorActivity.intent(this, themeId, themeName))
-                return true
-            }
-
-            R.id.action_diagnostics -> {
-                startActivity(DiagnosticsActivity.intent(this, themeId, themeName))
-                return true
-            }
-
-            R.id.action_edit_window -> {
-                startActivity(CandidateWindowActivity.intent(this, themeId, themeName))
-                return true
-            }
-
-            R.id.action_edit_toolbar -> {
-                startActivity(ToolBarActivity.intent(this, themeId, themeName))
-                return true
-            }
-
-            R.id.action_edit_keys -> {
-                startActivity(PresetKeyListActivity.intent(this, themeId, themeName))
-                return true
-            }
-
-            R.id.action_edit_layout -> {
-                startActivity(KeyboardListActivity.intent(this, themeId, themeName))
                 return true
             }
 
@@ -220,7 +184,7 @@ class ThemePreviewActivity : EditorActivity() {
                 text = label
                 textSize = 11f
                 typeface = Typeface.MONOSPACE
-                setPadding(dp(11), dp(5), dp(11), dp(5))
+                setPadding(dp(13), dp(7), dp(13), dp(7))
                 setOnClickListener {
                     if (followSystem) {
                         EditorPrefs.followSystemDayNight = true
@@ -273,7 +237,7 @@ class ThemePreviewActivity : EditorActivity() {
             view.setTextColor(
                 UiTokens.color(
                     this,
-                    if (selected) UiR.attr.ui_paper else UiR.attr.ui_ink_2,
+                    if (selected) UiR.attr.ui_on_primary else UiR.attr.ui_ink_2,
                 ),
             )
         }
@@ -409,16 +373,19 @@ class ThemePreviewActivity : EditorActivity() {
         binding.diagBox.setOnClickListener { openDiagnostics() }
     }
 
-    /** 选中的方案是一块实心墨，其余是描边——和工具条那排按钮同一种语言。 */
+    /**
+     * 选中的方案是主色实心胶囊，其余是描边胶囊——和配色页段控、诊断页筛选
+     * 同一种语言。圆角走 `ui_radius_button`，三套皮肤各自成立。
+     */
     private fun chipBackground(selected: Boolean): GradientDrawable = GradientDrawable().apply {
-        cornerRadius = dp(4).toFloat()
+        cornerRadius = UiTokens.dimen(this@ThemePreviewActivity, UiR.attr.ui_radius_button).toFloat()
         if (selected) {
-            setColor(UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_ink))
+            setColor(UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_primary))
         } else {
-            setColor(0)
+            setColor(UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_card))
             setStroke(
                 dp(1),
-                UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_rule_strong),
+                UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_rule),
             )
         }
     }

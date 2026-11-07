@@ -160,3 +160,36 @@ F6 六项（全量截图、对比度、G-05、性能、旧皮肤不回归、0.4.
 **真机验证**：点英雄区 → `ThemePreviewActivity`；八张卡逐张点过，分别跳
 配色 / 布局 / 动作 / 样式 / 候选窗 / 工具条 / 诊断；点诊断条中间 → 诊断页。
 全量门禁重跑全绿，`0.4.0` 重打。
+
+## 11. 交互一致性审计与后续优化（22:2x–23:0x）
+
+上面两个 bug 都是「画了入口的样子、代码里没有入口」，所以按同一思路把
+十页整体审了一遍：
+
+**审计（无新增死入口）**
+- 静态：扫所有布局里 `android:clickable="true"` 且带 id 的 9 个控件，逐个
+  对照 Kotlin 里的监听绑定，全部有绑定。
+- 动态：十页逐页 `uiautomator dump`，找带 `› / → / 打开 / 编辑 / 查看`
+  等入口暗示却没有可点击祖先的文字；命中的全是**说明文字 / 分组标题 / 页面
+  标题 / 摘要**，不是入口。
+
+**做了两处一致性优化**
+- **方案 chips 换成舞台胶囊语言**：`ThemePreviewActivity.chipBackground`
+  原来是「4dp 圆角 + 实心墨 + 描边」（旧 Proof 风格），跟配色页段控、
+  诊断页筛选的「全圆角 + 主色实心」不是一套。现在圆角走
+  `ui_radius_button`、选中 `ui_primary` + `ui_on_primary`、未选 `ui_card` +
+  1dp `ui_rule`，padding 加到 13/7。`ToolBarActivity` 的工具条示意条
+  （画的是主题按钮，颜色语义不同）只把 4dp 圆角换成同一个 token，不动配色。
+- **⋯ 菜单不再重复一套入口**：`menu/preview.xml` 删掉 7 个编辑项
+  （页面卡片已全覆盖），只留「回到输入法」+ `OutlineMenu` 动态加的「目录」；
+  `onPrepareOptionsMenu` / `onOptionsItemSelected` 里的对应 `R.id.*` 引用
+  一并清掉（item 删了 id 就不生成，留着会编译失败）。
+
+**验证**：全量门禁全绿；静态核对 `preview.xml` 只剩 1 个 item、
+`R.id.action_edit_*` 在 Kotlin 中出现 0 次、`ui_radius_button` /
+`ui_primary` / `ui_on_primary` 引用到位；`0.4.0` 重打（5,856,585 字节）。
+
+**真机截图待补**：这一轮设备进入锁屏 + 短休眠，`adb` 唤醒后 `screencap`
+连续抓到黑屏（锁屏界面 / 灭屏），无法拍 chips 与示意条的改后图。改动都是
+纯样式与菜单精简、编译与门禁全过，风险低；平板解锁后补两张图即可。
+设备 `screen_off_timeout` 试改过一次，已还原为 300000。
