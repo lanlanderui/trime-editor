@@ -256,7 +256,7 @@
     <string name="hero_current_theme">当前主题</string>
     <string name="hero_other_themes">其余 %1$d 个</string>
     <string name="hero_no_other_theme">只有这一份主题</string>
-    <string name="workbench_hint">点击当前主题或下面任意一份主题进入编辑；底部工具栏可更换目录、刷新、切换外观或回到输入法。</string>
+    <string name="workbench_hint">点击主题进入编辑；长按可重命名、复制、在文件管理器中打开。长按底部工具栏可更换目录、刷新、切换外观或回到输入法。</string>
     <string name="dock_dir">目录</string>
     <string name="dock_refresh">刷新</string>
     <string name="dock_appearance">外观</string>
@@ -264,4 +264,36 @@
     <string name="theme_open">打开</string>
     <string name="stage_back">← 返回</string>
     <string name="stage_save">保存</string>
+
+    <!-- N-1：B1 dock 按设计稿换成主题管理动作 -->
+    <string name="dock_new">新建</string>
+    <string name="dock_switch">切换</string>
+    <string name="dock_import">导入</string>
+    <string name="theme_new_title">新建主题</string>
+    <string name="theme_name_hint">主题名称</string>
+    <string name="theme_new_default">新建主题</string>
+    <string name="theme_created">已新建「%1$s」</string>
+    <string name="theme_failed">操作失败：%1$s</string>
+    <string name="theme_copied">已复制为「%1$s」</string>
+    <string name="theme_renamed">已重命名为「%1$s」</string>
+    <string name="theme_exists">「%1$s」已存在，换一个名字</string>
+    <string name="theme_rename_unchanged">名字没有变化</string>
+    <string name="theme_imported">已导入「%1$s」</string>
+    <string name="theme_import_failed">读不到选中的文件</string>
+    <string name="theme_not_theme">这看起来不是主题文件</string>
+    <string name="theme_import_pick">选择 .trime.yaml 文件</string>
+    <string name="theme_switch_title">切换到主题</string>
+    <string name="theme_only_one">只有这一份主题</string>
+    <!-- N-2：主题长按菜单 -->
+    <string name="theme_menu_rename">重命名</string>
+    <string name="theme_menu_duplicate">复制</string>
+    <string name="theme_menu_open">在文件管理器中打开</string>
+    <string name="theme_open_in_files">用文件管理器打开</string>
+    <string name="theme_path_copied">没有可用的文件管理器，路径已复制</string>
+    <!-- N-3：更多菜单 -->
+    <string name="theme_more_title">更多</string>
+
+    <!-- N-5：舞台显示内容 -->
+    <string name="stage_bands_full">▤ 完整</string>
+    <string name="stage_bands_keys">⌨ 仅键盘</string>
 </resources>

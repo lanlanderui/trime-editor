@@ -31,6 +31,7 @@ object EditorPrefs : ThemePreferenceStore {
     private const val KEY_FOLLOW_SYSTEM = "follow_system_day_night"
     private const val KEY_GUIDE_SEEN = "guide_seen"
     private const val KEY_SKIN = "skin_id"
+    private const val KEY_STAGE_BANDS = "stage_bands_visible"
 
     private const val DEFAULT_SCHEME = "default"
 
@@ -96,4 +97,12 @@ object EditorPrefs : ThemePreferenceStore {
     var skinId: String
         get() = requirePrefs().getString(KEY_SKIN, "").orEmpty()
         set(value) = requirePrefs().edit().putString(KEY_SKIN, value).apply()
+
+    /**
+     * N-5：B3 舞台是否画候选栏与底部留白。默认 true（所见即所得），
+     * 关掉就是设计稿里「只画键盘四行」的干净舞台。
+     */
+    var stageBandsVisible: Boolean
+        get() = requirePrefs().getBoolean(KEY_STAGE_BANDS, true)
+        set(value) = requirePrefs().edit().putBoolean(KEY_STAGE_BANDS, value).apply()
 }

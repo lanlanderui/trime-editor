@@ -238,3 +238,29 @@ SaveDynamicColor: { command: run, label: 收藏配色, option: "com.trime.editor
 调试包写法：`com.trime.editor.debug/.QuickApplyActivity` /
 `.QuickSaveActivity`（两份包可共存）。
 换包名等于换应用：旧包名正式包需卸载；签名仍是 `CN=Trime Editor`。
+
+## 13. N-1 → N-6 连续开发（2026-11-08）
+
+按「设计符合度复核」里列出的六条，从功能缺口到规格细节一次做完，中间不分开交付。
+逐阶段内容见 `doc/design/b-spec-checklist.md` 的「N 阶段实现记录」，这里只记验收面。
+
+| 阶段 | 交付 | 关键验证 |
+|---|---|---|
+| N-1 | dock 四项按稿（新建 / 切换 / 导入 / 输入法）+ `ThemeActions` 新建、切换、SAF 导入 | 真机新建后跳预览页，生成 32761 B 主题、`name:` 行改写、注释保留；切换对话框列出主题 |
+| N-2 | 长按菜单（重命名 / 复制 / 文件管理器打开）+ `FileProvider` + 纯函数 `renameFile` | 真机复制生成 `-副本`、系统 chooser 弹出；6 例单测覆盖改名成功 / 同名 / 空名 / 冲突 / 非法字符 / 字节保留 |
+| N-3 | 英雄区 ⋯ 移除，次级入口收进 dock 长按 | 真机 `heroMenu` 不出现、dock 长按菜单五项齐全 |
+| N-4 | 三屏大标题统一 bold(700) + `tools/design/check_typography.py` | 脚本 3/3；真机舞台皮肤确认 |
+| N-5 | B3「完整 / ⌨ 仅键盘」切换，只隐藏两条示意带子 | 真机胶囊互切；键盘宽度与绘制不动，D2 闸门保住 |
+| N-6 | `ui_highlight` 青色补色（舞台 `#9CF1F5`）作两处点缀 | 真机两处圆点；三套皮肤 token 齐全 |
+
+**统一门禁**：spotless / 392 例单测（0 failure）/ theme-core / lint 0 error /
+assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装。
+
+**过程中修掉的一个真问题**：`theme-core` 是纯 JVM 模块，它的
+`src/main/assets/templates/` 不会进 APK，新建主题一开始读不到模板。
+把该目录挂成 app 的 `assets.srcDirs`（不复制文件，模板不漂移）后验证通过。
+
+**自动化边界**：系统输入法会吞 `adb shell input text`，所以新建/重命名对话框里
+的自定义名字没法脚本化输入；真机验到的是「兜底名 + 菜单 + 复制 + 打开」，
+改名的**成功路径**由 `ThemeActionsTest.renameFile` 单测覆盖。SAF 导入的
+文件选择器也无法脚本化，只验到编译与导入逻辑，未端到端点选。

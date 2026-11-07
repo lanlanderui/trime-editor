@@ -49,6 +49,7 @@
         <item name="ui_divider">@color/tonal_divider</item>
         <item name="ui_rule_in_card">#00000000</item>
         <item name="ui_accent">@color/tonal_accent</item>
+        <item name="ui_highlight">@color/tonal_accent</item>
         <item name="ui_primary">@color/tonal_primary</item>
         <item name="ui_primary_dark">@color/tonal_primary_dark</item>
         <item name="ui_primary_container">@color/tonal_primary_container</item>
@@ -110,6 +111,7 @@
         <item name="ui_divider">@color/expressive_divider</item>
         <item name="ui_rule_in_card">#00000000</item>
         <item name="ui_accent">@color/expressive_accent</item>
+        <item name="ui_highlight">#9CF1F5</item>
         <item name="ui_primary">@color/expressive_primary</item>
         <item name="ui_primary_dark">@color/expressive_primary_dark</item>
         <item name="ui_primary_container">@color/expressive_primary_container</item>

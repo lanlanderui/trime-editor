@@ -27,6 +27,7 @@ import com.trime.editor.databinding.ItemThemeBinding
  */
 class ThemeCardAdapter(
     private val onOpen: (ThemeEntry) -> Unit,
+    private val onLongClick: (ThemeEntry, View) -> Unit = { _, _ -> },
 ) : RecyclerView.Adapter<ThemeCardAdapter.Holder>() {
     private var entries: List<ThemeEntry> = emptyList()
 
@@ -84,6 +85,10 @@ class ThemeCardAdapter(
                 binding.block.setTextColor(contrastOn(color))
             }
             binding.root.setOnClickListener { onOpen(entry) }
+            binding.root.setOnLongClickListener {
+                onLongClick(entry, binding.root)
+                true
+            }
         }
 
         /** 方块：16dp 圆角，比列表里的色块更方——它是「一本书的封面」，不是色票。 */

@@ -124,6 +124,17 @@
             android:parentActivityName=".KeyboardListActivity"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- N-2：把主题文件以 content:// 交给系统文件管理器，不能暴露 file:// -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

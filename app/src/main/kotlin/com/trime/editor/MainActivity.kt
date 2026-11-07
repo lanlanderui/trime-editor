@@ -14,9 +14,11 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
@@ -27,6 +29,7 @@ import com.trime.editor.ui.EditorActivity
 import com.trime.editor.ui.skin.UiMode
 import com.trime.editor.workbench.DirectoryPickerDialog
 import com.trime.editor.workbench.StorageAccess
+import com.trime.editor.workbench.ThemeActions
 import com.trime.editor.workbench.ThemeCardAdapter
 import com.trime.editor.workbench.ThemeEntry
 import com.trime.editor.workbench.readThemes
@@ -45,10 +48,13 @@ import kotlinx.coroutines.withContext
 class MainActivity : EditorActivity() {
     private lateinit var binding: ActivityMainBinding
 
-    private val adapter = ThemeCardAdapter(::openTheme)
+    private val adapter = ThemeCardAdapter(::openTheme, ::showThemeMenu)
 
     /** 英雄区当前展示的那一份；英雄区自己也要能点进编辑，所以得留住它。 */
     private var currentHero: ThemeEntry? = null
+
+    /** 「切换」对话框要列出目录里其余主题，留一份本次加载的结果。 */
+    private var currentEntries: List<ThemeEntry> = emptyList()
 
     private var loadJob: Job? = null
 
@@ -58,6 +64,17 @@ class MainActivity : EditorActivity() {
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
+
+    /** N-1：导入主题文件用 SAF，不申请额外的存储权限。 */
+    private val importLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            val dir = EditorPrefs.themeDir
+            if (uri != null && dir != null) {
+                lifecycleScope.launch {
+                    applyOutcome(ThemeActions.importFrom(this@MainActivity, dir, uri))
+                }
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,14 +90,25 @@ class MainActivity : EditorActivity() {
         binding.themes.layoutManager = LinearLayoutManager(this)
         binding.themes.adapter = adapter
         binding.changeDir.setOnClickListener { chooseDirectory() }
-        binding.dockDir.setOnClickListener { chooseDirectory() }
-        binding.dockRefresh.setOnClickListener { refresh() }
-        binding.dockAppearance.setOnClickListener { startActivity(Intent(this, AppearanceActivity::class.java)) }
+        // N-1：dock 换成设计稿的四项主题管理动作。
+        binding.dockNew.setOnClickListener { promptNewTheme() }
+        binding.dockSwitch.setOnClickListener { showSwitchDialog() }
+        binding.dockImport.setOnClickListener { importLauncher.launch(arrayOf("*/*")) }
         binding.dockIme.setOnClickListener { InputMethodApp.launch(this) }
-        binding.heroMenu.setOnClickListener { showHeroMenu(it) }
-        // 英雄区是这一页的主语，点它就要能进编辑；原来只有下面列表的行能点，
-        // 而页面提示写的却是「点击主题进入编辑」——主语自己点不动。
+        // N-3：稿子英雄区右上没有 ⋯；「目录 / 刷新 / 外观 / 帮助」收进 dock 长按。
+        listOf(binding.dock, binding.dockNew, binding.dockSwitch, binding.dockImport, binding.dockIme)
+            .forEach { v ->
+                v.setOnLongClickListener {
+                    showMoreMenu(binding.dock)
+                    true
+                }
+            }
+        // 英雄区是这一页的主语：点进编辑，长按管这份主题（N-2）。
         binding.heroBlock.setOnClickListener { currentHero?.let(::openTheme) }
+        binding.heroBlock.setOnLongClickListener {
+            currentHero?.let { showThemeMenu(it, binding.heroBlock) }
+            true
+        }
         // 崩溃提示优先于首启引导：它解释「上次为什么没了」，引导讲「怎么用」。
         // 两者同时需要，只有「第一次启动就崩过」这一种情况，那时先解释崩溃。
         if (!reportLastCrash()) FirstRunGuide.showIfFirstRun(this)
@@ -222,6 +250,7 @@ class MainActivity : EditorActivity() {
             ) { chooseDirectory() }
             return
         }
+        currentEntries = entries
         val hero = entries.firstOrNull { it.id == EditorPrefs.selectedTheme } ?: entries.first()
         currentHero = hero
         val others = entries.filter { it.id != hero.id }
@@ -238,14 +267,104 @@ class MainActivity : EditorActivity() {
         showList()
     }
 
-    /** 舞台没有 ActionBar，⋯ 用 PopupMenu 打开同一份菜单，功能不丢。 */
-    private fun showHeroMenu(anchor: View) {
+    /** N-3：舞台没有 ActionBar，次级入口挂 dock 长按，用 PopupMenu 打开同一份菜单。 */
+    private fun showMoreMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
         popup.menuInflater.inflate(R.menu.main, popup.menu)
         OutlineMenu.addTo(popup.menu, this)
         popup.menu.findItem(R.id.action_back_to_ime)?.isVisible = InputMethodApp.isInstalled(this)
         popup.setOnMenuItemClickListener { onOptionsItemSelected(it) }
         popup.show()
+    }
+
+    /** N-1/N-2 共用的结果处理：一句话反馈 + 刷新；新建完顺手打开编辑。 */
+    private fun applyOutcome(outcome: ThemeActions.Outcome, openAfterCreate: Boolean = false) {
+        Toast.makeText(this, outcome.message, Toast.LENGTH_SHORT).show()
+        if (!outcome.ok || outcome.id == null) return
+        if (openAfterCreate) {
+            EditorPrefs.selectedTheme = outcome.id
+            startActivity(
+                ThemePreviewActivity.intent(this, outcome.id, ThemeActions.displayBase(outcome.id)),
+            )
+        }
+        refresh()
+    }
+
+    private fun nameInput(initial: String): EditText = EditText(this).apply {
+        setText(initial)
+        hint = getString(R.string.theme_name_hint)
+        setSingleLine(true)
+        setSelection(initial.length)
+        setPadding(dp(20), dp(12), dp(20), dp(12))
+    }
+
+    /** N-1：新建。模板来自随包 assets，只改一行 `name:`。 */
+    private fun promptNewTheme() {
+        val dir = EditorPrefs.themeDir ?: return
+        val input = nameInput(getString(R.string.theme_new_default))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.theme_new_title)
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                lifecycleScope.launch {
+                    applyOutcome(
+                        ThemeActions.create(this@MainActivity, dir, input.text.toString()),
+                        openAfterCreate = true,
+                    )
+                }
+            }.show()
+    }
+
+    /** N-1：切换。列出目录里其余主题，选中即打开。 */
+    private fun showSwitchDialog() {
+        val others = currentEntries.filter { it.id != currentHero?.id }
+        if (others.isEmpty()) {
+            Toast.makeText(this, R.string.theme_only_one, Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.theme_switch_title)
+            .setItems(others.map { it.name }.toTypedArray()) { _, which -> openTheme(others[which]) }
+            .show()
+    }
+
+    /** N-2：主题长按菜单（英雄区与列表行共用）。 */
+    private fun showThemeMenu(entry: ThemeEntry, anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.add(Menu.NONE, 1, Menu.NONE, R.string.theme_menu_rename)
+        popup.menu.add(Menu.NONE, 2, Menu.NONE, R.string.theme_menu_duplicate)
+        popup.menu.add(Menu.NONE, 3, Menu.NONE, R.string.theme_menu_open)
+        popup.setOnMenuItemClickListener { item ->
+            val dir = EditorPrefs.themeDir
+            if (dir != null) {
+                when (item.itemId) {
+                    1 -> promptRename(entry)
+                    2 -> lifecycleScope.launch { applyOutcome(ThemeActions.duplicate(this@MainActivity, dir, entry)) }
+                    3 -> ThemeActions.openInFiles(this@MainActivity, ThemeActions.fileOf(dir, entry.id))
+                }
+            }
+            true
+        }
+        popup.show()
+    }
+
+    /** N-2：重命名改的是文件名；当前主题跟着换 id，别让英雄区指向旧文件。 */
+    private fun promptRename(entry: ThemeEntry) {
+        val dir = EditorPrefs.themeDir ?: return
+        val input = nameInput(ThemeActions.displayBase(entry.id))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.theme_menu_rename)
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                lifecycleScope.launch {
+                    val wasSelected = entry.id == EditorPrefs.selectedTheme
+                    val outcome = ThemeActions.rename(this@MainActivity, dir, entry, input.text.toString())
+                    if (outcome.ok && wasSelected) outcome.id?.let { EditorPrefs.selectedTheme = it }
+                    applyOutcome(outcome)
+                }
+            }.show()
     }
 
     private fun openTheme(entry: ThemeEntry) {

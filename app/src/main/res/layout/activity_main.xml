@@ -66,6 +66,13 @@
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
+                        <View
+                            android:id="@+id/heroHighlight"
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
+                            android:layout_marginEnd="7dp"
+                            android:background="@drawable/bg_highlight_dot" />
+
                         <TextView
                             android:id="@+id/heroEyebrow"
                             android:layout_width="0dp"
@@ -79,6 +86,7 @@
 
                         <TextView
                             android:id="@+id/heroMenu"
+                            android:visibility="gone"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
@@ -262,42 +270,42 @@
             android:paddingEnd="6dp">
 
             <LinearLayout
-                android:id="@+id/dockDir"
+                android:id="@+id/dockNew"
                 style="@style/Ui.DockItem">
 
                 <TextView
                     style="@style/Ui.DockGlyph"
-                    android:text="⌂" />
+                    android:text="＋" />
 
                 <TextView
                     style="@style/Ui.DockLabel"
-                    android:text="@string/dock_dir" />
+                    android:text="@string/dock_new" />
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/dockRefresh"
+                android:id="@+id/dockSwitch"
                 style="@style/Ui.DockItem">
 
                 <TextView
                     style="@style/Ui.DockGlyph"
-                    android:text="↻" />
+                    android:text="⇄" />
 
                 <TextView
                     style="@style/Ui.DockLabel"
-                    android:text="@string/dock_refresh" />
+                    android:text="@string/dock_switch" />
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/dockAppearance"
+                android:id="@+id/dockImport"
                 style="@style/Ui.DockItem">
 
                 <TextView
                     style="@style/Ui.DockGlyph"
-                    android:text="◑" />
+                    android:text="⤓" />
 
                 <TextView
                     style="@style/Ui.DockLabel"
-                    android:text="@string/dock_appearance" />
+                    android:text="@string/dock_import" />
             </LinearLayout>
 
             <LinearLayout

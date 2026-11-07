@@ -60,6 +60,21 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
     }
 
     /**
+     * N-5：只画键盘（设计稿 B3 的样子），或连候选栏 / 底部留白一起画。
+     *
+     * 只切两条带子的可见性，中间那块键盘的**宽度和绘制一个字节都不动**——
+     * D2 像素闸门要求预览宽度与输入法一致，缩进或重排都会让它作废。
+     * 默认完整（所见即所得），「仅键盘」是给想看稿子那种干净舞台的人用的视图。
+     */
+    fun setBandsVisible(visible: Boolean) {
+        val state = if (visible) VISIBLE else GONE
+        if (candidateBar.visibility != state) candidateBar.visibility = state
+        if (bottomPad.visibility != state) bottomPad.visibility = state
+    }
+
+    val bandsVisible: Boolean get() = candidateBar.visibility == VISIBLE
+
+    /**
      * 按 [theme] 摆两条带子。
      *
      * 候选栏高度取 `candidate_view_height + comment_height`：输入法的

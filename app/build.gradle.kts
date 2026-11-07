@@ -42,6 +42,14 @@ android {
         viewBinding = true
     }
 
+    // theme-core 是纯 JVM 模块，它的 assets 不会进 APK。新建主题要用随包模板，
+    // 直接把那一份目录挂成 app 的 assets 源集：不复制文件，模板改一处两边同步。
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs("src/main/assets", "../theme-core/src/main/assets")
+        }
+    }
+
     signingConfigs {
         if (hasReleaseKey) {
             create("release") {

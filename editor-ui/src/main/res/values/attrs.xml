@@ -46,6 +46,8 @@
     <!-- ===== 颜色：强调与状态 ===== -->
     <!-- 强调色。只表示「当前 / 需要你注意」，一屏超过三处就是滥用。 -->
     <attr name="ui_accent" format="color" />
+    <!-- 稿子的青 #9CF1F5，只作点缀，不铺面（N-6）。 -->
+    <attr name="ui_highlight" format="color" />
     <attr name="ui_primary" format="color" />
     <attr name="ui_primary_dark" format="color" />
     <attr name="ui_on_primary" format="color" />

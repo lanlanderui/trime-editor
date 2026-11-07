@@ -134,6 +134,13 @@ class KeyboardEditorActivity : EditorActivity() {
             chrome,
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
+        // N-5：舞台显示「完整输入区」还是「只画键盘」。默认完整（所见即所得），
+        // 关掉就是设计稿 B3 那种干净舞台；键盘宽度不变，D2 像素闸门不受影响。
+        binding.stageBands.setOnClickListener {
+            EditorPrefs.stageBandsVisible = !EditorPrefs.stageBandsVisible
+            applyStageBands()
+        }
+        applyStageBands()
         canvas.onSelect = ::select
         canvas.onWidthPreview = { index, weight -> previewWidth(index, weight) }
         canvas.onWidthCommit = { index, weight -> commitWidth(index, weight) }
@@ -146,6 +153,15 @@ class KeyboardEditorActivity : EditorActivity() {
         binding.redoButton.setOnClickListener(::redo)
         binding.toolbar.post { canvasWidth = binding.canvasHost.width }
         load()
+    }
+
+    /** N-5：切带子可见性；N-6：青色小点只在「仅键盘」模式亮起。 */
+    private fun applyStageBands() {
+        val visible = EditorPrefs.stageBandsVisible
+        chrome.setBandsVisible(visible)
+        binding.stageBands.text =
+            getString(if (visible) R.string.stage_bands_full else R.string.stage_bands_keys)
+        binding.stageHighlight.alpha = if (visible) 0.3f else 1f
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -448,7 +464,9 @@ class KeyboardEditorActivity : EditorActivity() {
                 background = null
                 setTextSize(30f)
                 letterSpacing = -0.02f
-                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                // N-4：稿子三屏的大字都是 640/680 字重；Android 没有可变字重，
+                // 700 是最近档。B1/B2 标题已用 bold，这里跟上，三屏一致。
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
                 setTextColor(UiTokens.color(this@KeyboardEditorActivity, UiR.attr.ui_ink))
                 setPadding(0, dp(4), 0, 0)
                 setSingleLine(true)

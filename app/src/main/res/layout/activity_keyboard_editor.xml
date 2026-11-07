@@ -100,19 +100,49 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
-            <!-- B3-04：键盘下居中一行读数。它在舞台上，不跟着滚动走。 -->
-            <TextView
-                android:id="@+id/stageStatus"
+            <!-- B3-04：键盘下居中一行读数；右侧胶囊切「完整 / 仅键盘」（N-5），
+                 青色小点是舞台模式的补色点缀（N-6）。 -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:gravity="center"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingTop="8dp"
-                android:paddingEnd="16dp"
-                android:paddingBottom="4dp"
-                android:textColor="?attr/ui_muted"
-                android:textSize="9.5sp" />
+                android:paddingEnd="16dp">
+
+                <View
+                    android:id="@+id/stageHighlight"
+                    android:layout_width="5dp"
+                    android:layout_height="5dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="@drawable/bg_highlight_dot" />
+
+                <TextView
+                    android:id="@+id/stageStatus"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:gravity="center"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="4dp"
+                    android:textColor="?attr/ui_muted"
+                    android:textSize="9.5sp" />
+
+                <TextView
+                    android:id="@+id/stageBands"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:background="@drawable/bg_field"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:singleLine="true"
+                    android:textColor="?attr/ui_ink_2"
+                    android:textSize="9sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <View

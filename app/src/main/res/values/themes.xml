@@ -39,6 +39,7 @@
         <item name="ui_divider">@color/divider</item>
         <item name="ui_rule_in_card">@color/proof_rule</item>
         <item name="ui_accent">@color/proof_accent</item>
+        <item name="ui_highlight">@color/proof_accent</item>
         <item name="ui_primary">@color/brand_primary</item>
         <item name="ui_primary_dark">@color/brand_primary_dark</item>
         <item name="ui_primary_container">@color/proof_primary_container</item>
