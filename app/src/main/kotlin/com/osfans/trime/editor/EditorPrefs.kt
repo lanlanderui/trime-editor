@@ -30,6 +30,7 @@ object EditorPrefs : ThemePreferenceStore {
     private const val KEY_SCHEME = "normal_mode_color"
     private const val KEY_FOLLOW_SYSTEM = "follow_system_day_night"
     private const val KEY_GUIDE_SEEN = "guide_seen"
+    private const val KEY_SKIN = "skin_id"
 
     private const val DEFAULT_SCHEME = "default"
 
@@ -84,4 +85,15 @@ object EditorPrefs : ThemePreferenceStore {
     var guideSeen: Boolean
         get() = requirePrefs().getBoolean(KEY_GUIDE_SEEN, false)
         set(value) = requirePrefs().edit().putBoolean(KEY_GUIDE_SEEN, value).apply()
+
+    /**
+     * 当前界面皮肤（`proof` / `m3-tonal` / `m3-expressive`）。
+     *
+     * 存的是 id 字符串而不是序号：皮肤会增删，序号会在版本之间错位，而错位的
+     * 表现是「升级之后界面突然换了」，用户无法解释。读到未知 id 时由
+     * `Skin.of` 回退默认值，这里不做校验——存储层不该知道有哪些皮肤。
+     */
+    var skinId: String
+        get() = requirePrefs().getString(KEY_SKIN, "").orEmpty()
+        set(value) = requirePrefs().edit().putString(KEY_SKIN, value).apply()
 }

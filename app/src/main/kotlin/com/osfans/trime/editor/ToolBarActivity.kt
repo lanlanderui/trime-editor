@@ -8,6 +8,8 @@ package com.osfans.trime.editor
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputType
 import android.view.Menu
@@ -20,8 +22,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.tb.RawToolBar
@@ -32,10 +32,14 @@ import com.osfans.trime.data.theme.tb.ToolBarCatalog
 import com.osfans.trime.data.theme.tb.ToolBarModel
 import com.osfans.trime.data.theme.tb.ToolBarSlot
 import com.osfans.trime.editor.databinding.ActivityToolBarBinding
+import com.osfans.trime.editor.ui.EditorActivity
+import com.osfans.trime.editor.ui.proof.ProofFormat
+import com.osfans.trime.editor.ui.skin.UiTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.osfans.trime.editor.ui.R as UiR
 
 /**
  * The candidate bar's buttons: their order, their look and what they do.
@@ -55,7 +59,7 @@ import java.io.File
  * file, and holding them in memory would mean re-implementing merge semantics
  * for something that is one line per change.
  */
-class ToolBarActivity : AppCompatActivity() {
+class ToolBarActivity : EditorActivity() {
     private lateinit var binding: ActivityToolBarBinding
 
     private var themeId: String = ""
@@ -88,6 +92,7 @@ class ToolBarActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.editor, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -97,6 +102,7 @@ class ToolBarActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, themeId, themeName)) return true
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
@@ -139,7 +145,9 @@ class ToolBarActivity : AppCompatActivity() {
         val model = model ?: return
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(8), dp(20), dp(28))
+            // 左右内边距由行自己带（行布局里有 gutter），这里只留上下，
+            // 否则行里的分隔线会和纸边对不齐。
+            setPadding(0, dp(4), 0, dp(28))
         }
         val scroll = ScrollView(this).apply { addView(column) }
         binding.content.removeAllViews()
@@ -162,37 +170,39 @@ class ToolBarActivity : AppCompatActivity() {
 
         drawPreview(model)
 
-        column.addView(heading(R.string.tb_section_metrics))
+        column.addView(heading(R.string.tb_section_metrics, ToolBarCatalog.SCALARS.size))
         ToolBarCatalog.SCALARS.forEach { name ->
             column.addView(
                 fieldRow(
                     label = getString(scalarLabel(name)),
+                    key = "tool_bar.$name",
                     value = model.scalars[name].orEmpty(),
                     numeric = name == "button_spacing",
                 ) { value -> writeScalar(name, value) },
             )
         }
 
-        column.addView(heading(R.string.tb_section_primary))
+        column.addView(heading(R.string.tb_section_primary, ToolBarCatalog.PRIMARY_FIELDS.size))
         model.primary?.let { primary ->
             ToolBarCatalog.PRIMARY_FIELDS.forEach { path ->
                 column.addView(
                     fieldRow(
                         label = getString(fieldLabel(path)),
+                        key = (listOf("primary_button") + path).joinToString("."),
                         value = primary.value(path),
                     ) { value -> writeBlockField(RawToolBar.PRIMARY, path, value) },
                 )
             }
         }
 
-        column.addView(heading(R.string.tb_section_buttons))
+        column.addView(heading(R.string.tb_section_buttons, model.buttons.size))
         if (model.buttons.isEmpty()) column.addView(text(getString(R.string.tb_no_buttons), secondary = true))
         model.buttons.forEach { button ->
             column.addView(buttonRow(button, model.buttons.size))
         }
 
         if (model.unreferenced.isNotEmpty()) {
-            column.addView(heading(R.string.tb_section_unreferenced))
+            column.addView(heading(R.string.tb_section_unreferenced, model.unreferenced.size))
             column.addView(text(getString(R.string.tb_unreferenced_hint), secondary = true))
             model.unreferenced.forEach { id ->
                 column.addView(unreferencedRow(id))
@@ -210,36 +220,49 @@ class ToolBarActivity : AppCompatActivity() {
      * and which buttons are switches.
      */
     private fun drawPreview(model: ToolBarModel) {
-        fun chip(label: String, twoState: Boolean, primary: Boolean) {
+        fun chip(
+            label: String,
+            twoState: Boolean,
+            primary: Boolean,
+        ) {
             val chip =
                 TextView(this).apply {
                     text = if (twoState) "$label ⇄" else label
-                    textSize = 12f
-                    setPadding(dp(10), dp(6), dp(10), dp(6))
+                    textSize = 11f
+                    typeface = Typeface.MONOSPACE
+                    setPadding(dp(9), dp(5), dp(9), dp(5))
                     setTextColor(
-                        ContextCompat.getColor(
+                        UiTokens.color(
                             context,
-                            if (primary) R.color.chip_text_selected else R.color.chip_text,
+                            if (primary) UiR.attr.ui_paper else UiR.attr.ui_ink_2,
                         ),
                     )
                     background =
-                        ContextCompat.getDrawable(
-                            context,
-                            if (primary) R.drawable.bg_chip_selected else R.drawable.bg_chip,
-                        )
+                        GradientDrawable().apply {
+                            cornerRadius = dp(4).toFloat()
+                            if (primary) {
+                                setColor(UiTokens.color(context, UiR.attr.ui_ink))
+                            } else {
+                                setColor(0)
+                                setStroke(
+                                    dp(1),
+                                    UiTokens.color(context, UiR.attr.ui_rule_strong),
+                                )
+                            }
+                        }
                 }
             binding.preview.addView(
                 chip,
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
-                ).apply { marginEnd = dp(6) },
+                ).apply { marginEnd = dp(5) },
             )
         }
         model.primary?.let { chip(previewLabel(it), it.twoState, primary = true) }
         model.buttons.forEach { chip(previewLabel(it), it.twoState, primary = false) }
         if (model.buttons.isEmpty() && model.primary == null) {
-            binding.preview.addView(text(getString(R.string.tb_no_buttons), secondary = true))
+            binding.preview.addView(text(getString(R.string.tb_no_buttons)))
         }
     }
 
@@ -250,72 +273,60 @@ class ToolBarActivity : AppCompatActivity() {
         return button.action.ifEmpty { button.blockId ?: button.source }
     }
 
-    private fun heading(resId: Int): TextView = TextView(this).apply {
-        text = getString(resId)
-        textSize = 13f
-        setPadding(0, dp(18), 0, dp(4))
-        setTextColor(ContextCompat.getColor(context, R.color.chip_text))
+    /** 章头用的是和其他页同一个布局：衬线标题 + 右侧项数 + 下面一条重线。 */
+    private fun heading(
+        resId: Int,
+        count: Int,
+    ): View {
+        val row = layoutInflater.inflate(UiR.layout.pref_proof_chapter, null, false)
+        row.findViewById<TextView>(UiR.id.proofChapterTitle).text = getString(resId)
+        row.findViewById<TextView>(UiR.id.proofChapterExtra).text = ProofFormat.count(count)
+        return row
     }
 
     private fun text(
         value: String,
-        secondary: Boolean = false,
+        secondary: Boolean = true,
         warn: Boolean = false,
-    ): TextView = TextView(this).apply {
-        text = value
-        textSize = 13f
-        setPadding(0, dp(6), 0, dp(6))
-        setTextColor(
-            ContextCompat.getColor(
-                context,
-                when {
-                    warn -> R.color.stale_text
-                    secondary -> R.color.chip_text
-                    else -> R.color.chip_text
-                },
-            ),
-        )
+    ): View {
+        val hint = layoutInflater.inflate(UiR.layout.view_proof_hint, null, false) as TextView
+        hint.text = value
+        if (warn) hint.setTextColor(UiTokens.color(this, UiR.attr.ui_accent))
+        return hint
     }
 
-    /** One label + one text field that writes on focus loss or IME "done". */
+    /**
+     * 一行「中文名 + 完整键路径 + 右侧输入框」。
+     *
+     * 布局是 editor-ui 里那一份：候选窗页也用同一个，两页的输入行必须长得一样，
+     * 否则同一张纸上会出现两种「能改的数值」。
+     */
     private fun fieldRow(
         label: String,
+        key: String,
         value: String,
         numeric: Boolean = false,
         onCommit: (String) -> Unit,
-    ): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        addView(
-            TextView(context).apply {
-                text = label
-                textSize = 12f
-                setPadding(0, dp(8), 0, dp(2))
-                setTextColor(ContextCompat.getColor(context, R.color.chip_text))
-            },
-        )
-        val field =
-            EditText(context).apply {
-                setText(value)
-                textSize = 15f
-                setSingleLine(true)
-                background = null
-                setPadding(0, dp(6), 0, dp(6))
-                inputType =
-                    if (numeric) {
-                        InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-                    } else {
-                        InputType.TYPE_CLASS_TEXT
-                    }
-                imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
-                setOnEditorActionListener { view, _, _ ->
-                    commit(view as EditText, value, onCommit)
-                    true
-                }
-                setOnFocusChangeListener { view, focused ->
-                    if (!focused && view is EditText) commit(view, value, onCommit)
-                }
+    ): View {
+        val row = layoutInflater.inflate(UiR.layout.pref_proof_field, null, false)
+        row.findViewById<TextView>(UiR.id.proofName).text = label
+        row.findViewById<TextView>(UiR.id.proofKey).text = key
+        val field = row.findViewById<EditText>(UiR.id.proofField)
+        field.setText(value)
+        field.inputType =
+            if (numeric) {
+                InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            } else {
+                InputType.TYPE_CLASS_TEXT
             }
-        addView(field, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        field.setOnEditorActionListener { view, _, _ ->
+            commit(view as EditText, value, onCommit)
+            true
+        }
+        field.setOnFocusChangeListener { view, focused ->
+            if (!focused && view is EditText) commit(view, value, onCommit)
+        }
+        return row
     }
 
     private fun commit(
@@ -327,87 +338,68 @@ class ToolBarActivity : AppCompatActivity() {
         if (next != old) onCommit(next)
     }
 
-    /** One button: what it is, what a tap does, and the two order controls. */
+    /** 一个按钮：它叫什么、点了做什么、以及调整顺序的四个动作。 */
     private fun buttonRow(
         button: ToolBarButton,
         total: Int,
-    ): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        setPadding(0, dp(10), 0, dp(10))
+    ): View {
+        val row = layoutInflater.inflate(UiR.layout.pref_proof_action_row, null, false)
+        row.findViewById<TextView>(UiR.id.proofName).text = previewLabel(button)
+        row.findViewById<TextView>(UiR.id.proofKey).text =
+            listOfNotNull(
+                button.blockId ?: button.source,
+                button.action.takeIf { it.isNotEmpty() },
+            ).joinToString(" · ")
+        val value = row.findViewById<TextView>(UiR.id.proofValue)
+        if (button.twoState) {
+            value.text = getString(R.string.tb_two_state)
+            value.setTextColor(UiTokens.color(this, UiR.attr.ui_accent))
+        }
 
-        addView(
-            TextView(context).apply {
-                text =
-                    buildString {
-                        append(button.blockId ?: button.source)
-                        if (button.twoState) append("　").append(getString(R.string.tb_two_state))
-                    }
-                textSize = 15f
-                setTextColor(ContextCompat.getColor(context, R.color.chip_text))
+        val actions = row.findViewById<LinearLayout>(UiR.id.proofActions)
+        if (button.editable) {
+            actions.addView(actionLink(getString(R.string.tb_edit)) { editButton(button) })
+        }
+        actions.addView(
+            actionLink(getString(R.string.tb_move_left)) { move(button, -1, total) }.apply {
+                isEnabled = button.visualIndex > 0
+                alpha = if (isEnabled) 1f else 0.35f
             },
         )
-        addView(
-            TextView(context).apply {
-                text =
-                    getString(
-                        R.string.tb_button_subtitle,
-                        button.action.ifEmpty { "—" },
-                        previewLabel(button),
-                    )
-                textSize = 12f
-                setTextColor(ContextCompat.getColor(context, R.color.chip_text))
+        actions.addView(
+            actionLink(getString(R.string.tb_move_right)) { move(button, 1, total) }.apply {
+                isEnabled = button.visualIndex < total - 1
+                alpha = if (isEnabled) 1f else 0.35f
             },
         )
-
-        addView(
-            LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                if (button.editable) {
-                    addView(smallButton(R.string.tb_edit) { editButton(button) })
-                }
-                addView(
-                    smallButton(R.string.tb_move_left) { move(button, -1, total) }.apply {
-                        isEnabled = button.visualIndex > 0
-                    },
-                )
-                addView(
-                    smallButton(R.string.tb_move_right) { move(button, 1, total) }.apply {
-                        isEnabled = button.visualIndex < total - 1
-                    },
-                )
-                addView(smallButton(R.string.tb_remove_from_list) { removeFromList(button) })
-            },
-        )
+        actions.addView(actionLink(getString(R.string.tb_remove_from_list)) { removeFromList(button) })
+        return row
     }
 
-    private fun unreferencedRow(id: String): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.HORIZONTAL
-        setPadding(0, dp(6), 0, dp(6))
-        addView(
-            TextView(context).apply {
-                text = id
-                textSize = 14f
-                setTextColor(ContextCompat.getColor(context, R.color.chip_text))
-            },
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
-        )
-        addView(smallButton(R.string.tb_add_to_list) { addToList(id) })
-        addView(smallButton(R.string.tb_delete_block) { deleteBlock(id) })
+    /** 定义了但没被 `buttons` 引用的块：一行，两个动作。 */
+    private fun unreferencedRow(id: String): View {
+        val row = layoutInflater.inflate(UiR.layout.pref_proof_action_row, null, false)
+        row.findViewById<TextView>(UiR.id.proofName).text = id
+        row.findViewById<TextView>(UiR.id.proofKey).text = getString(R.string.tb_unreferenced_key)
+        val actions = row.findViewById<LinearLayout>(UiR.id.proofActions)
+        actions.addView(actionLink(getString(R.string.tb_add_to_list)) { addToList(id) })
+        actions.addView(actionLink(getString(R.string.tb_delete_block)) { deleteBlock(id) })
+        return row
     }
 
-    private fun smallButton(
-        titleRes: Int,
+    /** 文字动作：等宽小字，靠颜色分层，不做成按钮——它不是「确认」，是「调整」。 */
+    private fun actionLink(
+        title: String,
         onClick: () -> Unit,
-    ): Button = Button(this, null, android.R.attr.borderlessButtonStyle).apply {
-        text = getString(titleRes)
-        textSize = 12f
-        minWidth = 0
-        minimumWidth = 0
-        setPadding(dp(8), dp(2), dp(8), dp(2))
+    ): TextView = TextView(this).apply {
+        text = title
+        textSize = 10f
+        typeface = Typeface.MONOSPACE
+        setTextColor(UiTokens.color(context, UiR.attr.ui_ink_2))
+        setPadding(0, dp(2), dp(16), dp(2))
+        isClickable = true
         setOnClickListener { onClick() }
     }
-
-    // ------------------------------------------------------------------ edits
 
     private fun writeScalar(
         key: String,
@@ -480,7 +472,7 @@ class ToolBarActivity : AppCompatActivity() {
                     text = getString(fieldLabel(path))
                     textSize = 12f
                     setPadding(0, dp(8), 0, dp(2))
-                    setTextColor(ContextCompat.getColor(context, R.color.chip_text))
+                    setTextColor(UiTokens.color(context, UiR.attr.ui_chip_text))
                 },
             )
             val field =

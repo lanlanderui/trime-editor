@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SPDX-FileCopyrightText: 2026 Rime community
+
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<!--
+  章节头：一条比纸略亮的色带，里面是衬线组名 + 右侧「11 项 / 已改 2」，色带下缘
+  一条全幅重线。
+
+  原来是「靠字号和字重分层」——真机上那点差别不够：16sp 粗衬线压在 13sp 常规无衬线上，
+  一章和它的第一行要愣一下才分得清。所以加了一条色带（sheet 比 paper 亮一档），
+  章头从此是一个「条」，不是一行更大的字。色带也顺便回答了「这一段到哪结束」。
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/ui_paper"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/ui_gutter"
+        android:paddingTop="@dimen/ui_chapter_pad_top"
+        android:paddingEnd="@dimen/ui_gutter"
+        android:paddingBottom="@dimen/ui_chapter_pad_bottom">
+
+        <TextView
+            android:id="@+id/proofChapterTitle"
+            style="@style/Ui.SectionLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/proofChapterExtra"
+            style="@style/Ui.Value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_row_gap"
+            android:singleLine="true" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/ui_rule_in_card" />
+</LinearLayout>

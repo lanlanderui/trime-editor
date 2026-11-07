@@ -20,8 +20,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.scalar.RawScalarSection
@@ -31,6 +29,8 @@ import com.osfans.trime.data.theme.scalar.ScalarSectionSpec
 import com.osfans.trime.data.theme.scalar.ThemeScalarReader
 import com.osfans.trime.data.theme.scalar.ThemeScalarWriter
 import com.osfans.trime.editor.databinding.ActivityScalarSectionsBinding
+import com.osfans.trime.editor.ui.EditorActivity
+import com.osfans.trime.editor.ui.proof.ProofFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,7 +50,7 @@ import com.osfans.trime.editor.ui.R as UiR
  * a fixed-share candidate strip, and a strip that does not move when `insets`
  * changes is worse than no strip at all.
  */
-class CandidateWindowActivity : AppCompatActivity() {
+class CandidateWindowActivity : EditorActivity() {
     private lateinit var binding: ActivityScalarSectionsBinding
 
     private var themeId: String = ""
@@ -89,6 +89,7 @@ class CandidateWindowActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.editor, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -98,6 +99,7 @@ class CandidateWindowActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, themeId, themeName)) return true
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
@@ -145,11 +147,11 @@ class CandidateWindowActivity : AppCompatActivity() {
         )
 
         ScalarCatalog.sections.forEach { spec ->
-            column.addView(heading(getString(sectionLabel(spec.name))))
-            sectionHint(spec.name)?.let { column.addView(text(getString(it), secondary = true)) }
+            column.addView(heading(getString(sectionLabel(spec.name)), spec.fields.size))
+            sectionHint(spec.name)?.let { column.addView(text(getString(it))) }
             val section = sections.getValue(spec.name)
             if (section.range == null) {
-                column.addView(text(getString(R.string.cw_not_written), secondary = true))
+                column.addView(text(getString(R.string.cw_not_written)))
                 column.addView(
                     Button(this, null, android.R.attr.borderlessButtonStyle).apply {
                         text = getString(R.string.cw_create_section)
@@ -164,7 +166,6 @@ class CandidateWindowActivity : AppCompatActivity() {
                 column.addView(
                     text(
                         getString(R.string.cw_unlisted, unlisted.joinToString(", ") { it.joinToString(".") }),
-                        secondary = true,
                     ),
                 )
             }
@@ -179,59 +180,39 @@ class CandidateWindowActivity : AppCompatActivity() {
         spec: ScalarSectionSpec,
         section: RawScalarSection,
         field: ScalarField,
-    ): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
+    ): View {
         val value = ScalarCatalog.valueOf(section, field)
         val hasLine = section.leaf(field.path) != null
+        // 行是 editor-ui 里的同一套布局：这张纸上的行只有一种长相，
+        // 不能因为「这一页能就地输入」就长成一张表单。
+        val row = layoutInflater.inflate(UiR.layout.pref_proof_field, null, false)
+        row.findViewById<TextView>(UiR.id.proofName).text = getString(fieldLabel(spec.name, field.id))
+        row.findViewById<TextView>(UiR.id.proofKey).text = (listOf(spec.name) + field.path).joinToString(".")
 
-        val header = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        header.addView(
-            TextView(context).apply {
-                text = getString(fieldLabel(spec.name, field.id))
-                textSize = 12f
-                setTextColor(ContextCompat.getColor(context, R.color.chip_text))
-            },
-            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
-        )
-        if (hasLine) {
-            header.addView(
-                Button(context, null, android.R.attr.borderlessButtonStyle).apply {
-                    text = getString(R.string.cw_reset)
-                    textSize = 11f
-                    minWidth = 0
-                    minimumWidth = 0
-                    setPadding(dp(8), 0, dp(8), 0)
-                    setOnClickListener { reset(spec, field) }
-                },
-            )
+        val input = row.findViewById<EditText>(UiR.id.proofField)
+        input.setText(value.orEmpty())
+        input.hint = getString(R.string.cw_default_hint, field.defaultValue)
+        input.inputType =
+            if (field.kind == ScalarField.Kind.INT) {
+                InputType.TYPE_CLASS_NUMBER
+            } else {
+                InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            }
+        input.setOnEditorActionListener { view, _, _ ->
+            commit(view as EditText, spec, field, value)
+            true
         }
-        addView(header)
+        input.setOnFocusChangeListener { view, focused ->
+            if (!focused && view is EditText) commit(view, spec, field, value)
+        }
 
-        addView(
-            EditText(context).apply {
-                setText(value.orEmpty())
-                hint = getString(R.string.cw_default_hint, field.defaultValue)
-                textSize = 15f
-                setSingleLine(true)
-                background = null
-                setPadding(0, dp(4), 0, dp(4))
-                inputType =
-                    if (field.kind == ScalarField.Kind.INT) {
-                        InputType.TYPE_CLASS_NUMBER
-                    } else {
-                        InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-                    }
-                imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
-                setOnEditorActionListener { view, _, _ ->
-                    commit(view as EditText, spec, field, value)
-                    true
-                }
-                setOnFocusChangeListener { view, focused ->
-                    if (!focused && view is EditText) commit(view, spec, field, value)
-                }
-            },
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT),
-        )
+        val action = row.findViewById<TextView>(UiR.id.proofAction)
+        if (hasLine) {
+            action.visibility = View.VISIBLE
+            action.text = getString(R.string.cw_reset)
+            action.setOnClickListener { reset(spec, field) }
+        }
+        return row
     }
 
     private fun commit(
@@ -321,21 +302,23 @@ class CandidateWindowActivity : AppCompatActivity() {
         }
     }
 
-    private fun heading(value: String): TextView = TextView(this).apply {
-        text = value
-        textSize = 14f
-        setPadding(0, dp(16), 0, dp(2))
-        setTextColor(ContextCompat.getColor(context, R.color.chip_text))
+    /** 章头用的是和其他页同一个布局，连下面那条重线都一样。 */
+    private fun heading(
+        value: String,
+        count: Int,
+    ): View {
+        val row = layoutInflater.inflate(UiR.layout.pref_proof_chapter, null, false)
+        row.findViewById<TextView>(UiR.id.proofChapterTitle).text = value
+        // 段名不再塞进标题里（原来写作「候选窗 window」），标题只留中文，
+        // 项数放右列——和其他页的章头一致。
+        row.findViewById<TextView>(UiR.id.proofChapterExtra).text = ProofFormat.count(count)
+        return row
     }
 
-    private fun text(
-        value: String,
-        secondary: Boolean = false,
-    ): TextView = TextView(this).apply {
-        text = value
-        textSize = 12f
-        setPadding(0, dp(4), 0, dp(4))
-        setTextColor(ContextCompat.getColor(context, if (secondary) R.color.chip_text else R.color.chip_text))
+    private fun text(value: String): View {
+        val hint = layoutInflater.inflate(UiR.layout.view_proof_hint, null, false) as TextView
+        hint.text = value
+        return hint
     }
 
     private fun sectionLabel(name: String): Int = when (name) {

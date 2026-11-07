@@ -276,21 +276,30 @@ class ColorPickerView(context: Context) : View(context) {
         if (notify) onColorChanged?.invoke(color)
     }
 
-    private companion object {
+    // internal 而不是 private：色相顺序有单测钉着（见 ColorPickerHueOrderTest）。
+    internal companion object {
         /** Square height as a fraction of the width. */
         const val SQUARE_RATIO = 0.60f
 
         /** Widest the picker is allowed to get, in dp. */
         const val MAX_WIDTH_DP = 320
 
-        val HUE_COLORS =
+        /**
+         * 色相条的颜色，必须与 `hue = x / width * 360` 这套读法同向。
+         *
+         * 左边是 0°（红），往右角度增大：黄 60°、绿 120°、青 180°、蓝 240°、品红 300°。
+         * 这串原来写成了红→品红→蓝→青→绿→黄→红（反向），于是点在「看着是蓝」的
+         * 位置上读出来是 120°（绿）——看到的颜色和拿到的颜色差半个色环。
+         */
+        @androidx.annotation.VisibleForTesting
+        internal val HUE_COLORS =
             intArrayOf(
                 Color.RED,
-                Color.MAGENTA,
-                Color.BLUE,
-                Color.CYAN,
-                Color.GREEN,
                 Color.YELLOW,
+                Color.GREEN,
+                Color.CYAN,
+                Color.BLUE,
+                Color.MAGENTA,
                 Color.RED,
             )
     }

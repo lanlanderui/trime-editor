@@ -46,7 +46,7 @@
     <!-- 跨进程协作：文件被输入法改过、以及回到输入法去看效果 -->
     <string name="action_back_to_ime">回到输入法</string>
     <string name="action_help">使用帮助</string>
-    <string name="back_to_ime_missing">没找到「同文输入法03」：请先安装并启用输入法，再回来试</string>
+    <string name="back_to_ime_missing">没找到同文输入法：请先安装并启用输入法，再回来试</string>
     <string name="editor_stale_title">主题文件已被输入法改过，这里显示的是旧内容</string>
     <string name="editor_stale_action">重新加载</string>
 
@@ -125,7 +125,7 @@
     <string name="tb_title">工具条</string>
     <string name="tb_section_metrics">间距与字体</string>
     <string name="tb_section_primary">主按钮（固定在左侧）</string>
-    <string name="tb_section_buttons">按钮（从左到右）</string>
+    <string name="tb_section_buttons">按钮（右起）</string>
     <string name="tb_section_unreferenced">未被引用的按钮块</string>
     <string name="tb_unreferenced_hint">这些块还在文件里，但 buttons 没有引用它们，键盘上不显示。</string>
     <string name="tb_no_section">这个主题没有 tool_bar 段，工具条用输入法的默认样式。</string>
@@ -144,20 +144,20 @@
     <string name="tb_add_to_list">加入列表</string>
     <string name="tb_delete_block">删除定义</string>
     <string name="tb_delete_block_body">把「%1$s」的整块定义从主题里删掉？按钮引用要先清空。</string>
-    <string name="tb_field_button_spacing">按钮间距 button_spacing</string>
-    <string name="tb_field_button_font">按钮字体 button_font</string>
-    <string name="tb_field_back_style">返回按钮样式 back_style</string>
-    <string name="tb_field_style">图标 / 样式 foreground.style</string>
+    <string name="tb_field_button_spacing">按钮间距</string>
+    <string name="tb_field_button_font">按钮字体</string>
+    <string name="tb_field_back_style">返回按钮样式</string>
+    <string name="tb_field_style">图标 / 样式</string>
     <string name="tb_field_option_styles">二态样式 option_styles（逗号分隔，两个才算二态）</string>
-    <string name="tb_field_action">动作 action</string>
-    <string name="tb_field_long_press">长按动作 long_press_action</string>
+    <string name="tb_field_action">动作</string>
+    <string name="tb_field_long_press">长按动作</string>
 
     <!-- 候选窗 / 预编辑（D7d） -->
     <string name="action_edit_window">候选窗与预编辑</string>
     <string name="cw_title">候选窗与预编辑</string>
-    <string name="cw_section_window">候选窗 window</string>
-    <string name="cw_section_preedit">预编辑 preedit</string>
-    <string name="cw_section_style">候选栏外观 style</string>
+    <string name="cw_section_window">候选窗</string>
+    <string name="cw_section_preedit">预编辑</string>
+    <string name="cw_section_style">候选栏外观</string>
     <string name="cw_section_style_hint">这几项在「样式 → 候选栏」里也有，改的是同一行；主题里没写的显示默认值。</string>
     <string name="cw_not_written">这个主题没有写这一段，输入法用自己的默认值。</string>
     <string name="cw_create_section">新建这一段</string>
@@ -170,29 +170,29 @@
     <string name="cw_save_failed_title">保存失败</string>
     <string name="cw_load_failed">读不出这个主题的候选窗设置</string>
     <string name="cw_field_unknown">（未命名字段）</string>
-    <string name="cw_window_insets_vertical">内边距 · 上下 insets.vertical</string>
-    <string name="cw_window_insets_horizontal">内边距 · 左右 insets.horizontal</string>
-    <string name="cw_window_item_padding_vertical">候选间距 · 上下 item_padding.vertical</string>
-    <string name="cw_window_item_padding_horizontal">候选间距 · 左右 item_padding.horizontal</string>
-    <string name="cw_window_min_width">最小宽度 min_width</string>
-    <string name="cw_window_corner_radius">圆角 corner_radius</string>
-    <string name="cw_window_border">边框 border</string>
-    <string name="cw_window_shadow">阴影 shadow</string>
-    <string name="cw_window_alpha">不透明度 alpha</string>
-    <string name="cw_window_label_font">标签字号 foreground.label_font_size</string>
-    <string name="cw_window_text_font">候选字号 foreground.text_font_size</string>
-    <string name="cw_window_comment_font">编码字号 foreground.comment_font_size</string>
-    <string name="cw_preedit_padding">左右内边距 horizontal_padding</string>
-    <string name="cw_preedit_top_start">左上圆角 top_start_radius</string>
-    <string name="cw_preedit_top_end">右上圆角 top_end_radius</string>
-    <string name="cw_preedit_alpha">不透明度 alpha</string>
-    <string name="cw_preedit_font">字号 foreground.font_size</string>
+    <string name="cw_window_insets_vertical">内边距 · 上下</string>
+    <string name="cw_window_insets_horizontal">内边距 · 左右</string>
+    <string name="cw_window_item_padding_vertical">候选间距 · 上下</string>
+    <string name="cw_window_item_padding_horizontal">候选间距 · 左右</string>
+    <string name="cw_window_min_width">最小宽度</string>
+    <string name="cw_window_corner_radius">圆角</string>
+    <string name="cw_window_border">边框</string>
+    <string name="cw_window_shadow">阴影</string>
+    <string name="cw_window_alpha">不透明度</string>
+    <string name="cw_window_label_font">标签字号</string>
+    <string name="cw_window_text_font">候选字号</string>
+    <string name="cw_window_comment_font">编码字号</string>
+    <string name="cw_preedit_padding">左右内边距</string>
+    <string name="cw_preedit_top_start">左上圆角</string>
+    <string name="cw_preedit_top_end">右上圆角</string>
+    <string name="cw_preedit_alpha">不透明度</string>
+    <string name="cw_preedit_font">字号</string>
 
     <!-- 静态检查（D8a） -->
     <string name="action_diagnostics">静态检查</string>
     <string name="dg_title">静态检查</string>
     <string name="dg_clean">没有发现问题。</string>
-    <string name="dg_summary">共 %1$d 处：%2$d 个错误、%3$d 个警告。点一条跳到对应的编辑页。</string>
+    <string name="dg_summary">共 %1$d 处：%2$d 个错误、%3$d 个警告、%4$d 个提示。点一条跳到对应的编辑页。</string>
     <string name="dg_severity_error">错误</string>
     <string name="dg_severity_warning">警告</string>
     <string name="dg_severity_info">提示</string>
@@ -206,4 +206,60 @@
     <string name="crash_clear">删除日志</string>
     <string name="crash_later">稍后</string>
     <string name="crash_log_title">崩溃日志</string>
+    <string name="tb_unreferenced_key">未在 buttons 中引用</string>
+    <string name="preview_findings_open">逐条查看 →</string>
+    <string name="preview_findings_count_label">处需要注意</string>
+    <string name="preview_findings_clean_label">静态检查通过</string>
+    <string name="preview_info_title">这份主题</string>
+    <string name="preview_info_schemes">配色方案</string>
+    <string name="preview_info_keyboards">键盘布局</string>
+    <string name="preview_info_keys">自定义动作</string>
+    <string name="preview_info_pairs">明暗配对</string>
+    <string name="preview_info_count">%1$d</string>
+    <string name="dg_filter_all">全部</string>
+    <string name="dg_filter_error">错误</string>
+    <string name="dg_filter_warning">警告</string>
+    <string name="dg_filter_info">提示</string>
+    <string name="preview_source_missing">目录里没有 %1$s。看看主题目录里是不是真有这个文件，或者回工作台换一个。</string>
+    <string name="outline_need_theme">先在工作台选一个主题</string>
+    <string name="quick_apply_label">更新动态配色</string>
+    <string name="quick_save_label">收藏动态配色</string>
+    <string name="quick_no_access">请先打开一次同文编辑器，授予「所有文件访问」权限</string>
+    <string name="quick_no_theme">先在编辑器里打开一个主题，再从按键调用</string>
+    <string name="quick_apply_done">已按系统壁纸更新 material_you 明暗两套，切到该方案后生效</string>
+    <string name="quick_apply_no_system">这台系统没有提供壁纸配色（需要 Android 12 及以上）</string>
+    <string name="quick_apply_failed">写主题失败</string>
+    <string name="quick_save_done">已收藏当前动态配色</string>
+    <string name="quick_save_already">这套配色已经收藏过了</string>
+    <string name="quick_save_no_palette">主题里还没有动态配色，先点一次「更新配色」</string>
+    <string name="quick_save_no_dir">还没有设置主题目录</string>
+    <string name="quick_save_failed">收藏失败</string>
+
+    <!-- ===== 外观：皮肤 ===== -->
+    <string name="action_appearance">外观</string>
+    <string name="appearance_title">外观</string>
+    <string name="appearance_subtitle">界面风格</string>
+    <string name="appearance_hint">换皮肤只改界面，不改主题文件里的任何一行。已经打开的页面会重新加载一次。</string>
+    <string name="skin_proof">校样</string>
+    <string name="skin_proof_tagline">纸感底色 · 衬线标题 · 行分隔</string>
+    <string name="skin_tonal">层叠</string>
+    <string name="skin_tonal_tagline">Material You · 卡片分组 · 默认</string>
+    <string name="skin_expressive">舞台</string>
+    <string name="skin_expressive_tagline">大圆角 · 色块舞台 · 悬浮工具条</string>
+    <string name="skin_selected">当前使用</string>
+    <string name="theme_current">当前</string>
+    <string name="workbench_subtitle">%1$d 个主题 · 点一份开始编辑</string>
+
+    <!-- ===== 方向 B：工作台 ===== -->
+    <string name="hero_current_theme">当前主题</string>
+    <string name="hero_other_themes">其余 %1$d 个</string>
+    <string name="hero_no_other_theme">只有这一份主题</string>
+    <string name="workbench_hint">点击主题进入编辑；长按可重命名、复制、在文件管理器中打开。</string>
+    <string name="dock_dir">目录</string>
+    <string name="dock_refresh">刷新</string>
+    <string name="dock_appearance">外观</string>
+    <string name="dock_ime">输入法</string>
+    <string name="theme_open">打开</string>
+    <string name="stage_back">← 返回</string>
+    <string name="stage_save">保存</string>
 </resources>

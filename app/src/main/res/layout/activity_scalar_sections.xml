@@ -9,10 +9,10 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
+        style="@style/Ui.Toolbar"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand_primary"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-        app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
+        app:popupTheme="@style/ThemeOverlay.AppCompat.DayNight"
+        app:theme="@style/ThemeOverlay.AppCompat.DayNight" />
 
     <FrameLayout
         android:id="@+id/content"

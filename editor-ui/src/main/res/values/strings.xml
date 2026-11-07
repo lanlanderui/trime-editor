@@ -220,4 +220,9 @@
     <!-- 预览板上下的两条示意带子 -->
     <string name="preview_band_candidate">候选栏</string>
     <string name="preview_band_bottom">keyboard_padding_bottom</string>
+    <!-- 目录栏 -->
+    <string name="outline_brand">同</string>
+    <string name="outline_title">同文编辑器</string>
+    <string name="outline_open">目录</string>
+
 </resources>

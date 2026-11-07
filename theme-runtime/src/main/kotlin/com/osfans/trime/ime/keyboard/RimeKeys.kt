@@ -96,6 +96,30 @@ private object BasicRimeKeys : RimeKeyTable {
         "Super_L" to KeyEvent.KEYCODE_META_LEFT,
         "Super_R" to KeyEvent.KEYCODE_META_RIGHT,
         "Multi_key" to KeyEvent.KEYCODE_SYM,
+        // trime 把 Eisu_toggle 当「切键盘」键用（`CommonKeyboardActionListener` 截获后走
+        // `switchKeyboard(select)`），主题里满篇都是它。编辑器这张表原来没收，于是静态
+        // 检查把每个用它的动作都报成「认不出 send」——报的是编辑器的盲区，不是主题的错。
+        "Eisu_toggle" to KeyEvent.KEYCODE_EISU,
+
+        // 输入法把 `!` `?` `^` 这些「一个符号的 X11 名字」收在符号表里，落到合成键码
+        // 10000+（见 codegen 的 SYMBOL_CODE_OFFSET）。主题里 `send: asciicircum` 是能用的，
+        // 编辑器这张表原来没有，于是又变成一片「认不出 send」。编号与输入法保持一致，
+        // 免得同一个名字在两处指着不同的东西。
+        "exclam" to 10000,
+        "quotedbl" to 10001,
+        "dollar" to 10002,
+        "percent" to 10003,
+        "ampersand" to 10004,
+        "colon" to 10005,
+        "less" to 10006,
+        "greater" to 10007,
+        "question" to 10008,
+        "asciicircum" to 10009,
+        "underscore" to 10010,
+        "braceleft" to 10011,
+        "bar" to 10012,
+        "braceright" to 10013,
+        "asciitilde" to 10014,
         "equal" to KeyEvent.KEYCODE_EQUALS,
         "bracketleft" to KeyEvent.KEYCODE_LEFT_BRACKET,
         "bracketright" to KeyEvent.KEYCODE_RIGHT_BRACKET,

@@ -53,6 +53,10 @@ class ColorEditorActivity :
 
     override val subtitleRes: Int get() = R.string.color_editor_title
 
+    override val outlineChapter: String get() = "colors"
+
+    override fun refreshCaption() = updateCaption()
+
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         // Read before the base class loads the theme: the scheme picks which
         // colours the board resolves, so it has to be in place before the first

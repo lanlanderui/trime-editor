@@ -59,6 +59,17 @@ object ThemeLoader {
         ) : ThemeLoadError(themeId, "Invalid theme structure: $detail", cause)
 
         /**
+         * 主题文件根本不在：目录里没有 `$themeId.yaml`。
+         *
+         * 和 [DeployUnavailable] 分开报，因为这两件事的处理完全不同：这一件是
+         * 「选错了主题，或者文件没拷过来」；那一件是「文件在，但用了编辑器读不懂的写法」。
+         * 混成一句「没有 librime」，人会去查输入法，而问题在文件名。
+         */
+        class SourceNotFound(
+            themeId: String,
+        ) : ThemeLoadError(themeId, "Theme file not found: $themeId.yaml")
+
+        /**
          * The theme declares no color scheme, so there is nothing the runtime
          * could render it with.
          */
@@ -134,6 +145,11 @@ object ThemeLoader {
         // unusable (no colour scheme); it is reported as is rather than papered
         // over with whatever librime deployed earlier.
         if (source != null) return source
+        // 读都没读到（而不是读了但不合用）：`reason` 只在「源文件被拒」时才会写，
+        // 它还是空就说明压根没有这个文件。这时不该提 librime——那是另一件事。
+        if (reason == null) {
+            return ThemeLoadResult.Failure(themeId, ThemeLoadError.SourceNotFound(themeId))
+        }
         // The deployed artifact can go stale as well — the source file it was
         // compiled from may still change — so both are part of the snapshot.
         val tried = sources.snapshot()

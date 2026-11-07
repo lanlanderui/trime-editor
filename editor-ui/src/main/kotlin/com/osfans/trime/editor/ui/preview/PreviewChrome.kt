@@ -67,8 +67,7 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
      */
     fun applyStyle(theme: Theme) {
         applied = theme
-        candidateBar.show(theme)
-        bottomPad.show(context.dp(theme.style.keyboardPaddingBottom), theme.style.keyboardPaddingBottom)
+        styleBands(theme)
     }
 
     /**
@@ -78,7 +77,20 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
      * 候选栏会一直是切之前那个颜色。输入法的 `InputBar.refreshColors()` 做的也是这件事。
      */
     fun refreshColors() {
-        applied?.let { candidateBar.show(it) }
+        // 两条带子都要刷。只刷候选栏的话，切配色后「键盘下方那条留白」会停在
+        // 上一套方案的颜色上，直到离开这一页再回来（它只在 applyStyle 里取色）。
+        applied?.let(::styleBands)
+    }
+
+    /** 两条带子的尺寸与颜色都在这里取，改一处就够。 */
+    private fun styleBands(theme: Theme) {
+        candidateBar.show(theme)
+        bottomPad.show(
+            context.dp(theme.style.keyboardPaddingBottom),
+            theme.style.keyboardPaddingBottom,
+            // 这块留白在输入法里就是键盘背景的一部分，不是「编辑器画的一条灰带」。
+            runCatching { ColorManager.getColor("keyboard_back_color") }.getOrNull(),
+        )
     }
 
     /**
@@ -357,9 +369,25 @@ class PreviewChrome(context: Context) : LinearLayout(context) {
         fun show(
             px: Int,
             dp: Int,
+            background: Int? = null,
         ) {
             heightPx = px
             valueDp = dp
+            // 有键盘底色就用它填：这块留白在输入法里露出来的就是键盘背景，
+            // 画成灰带会让人以为「这里不属于键盘」。虚线框仍留着，说明它是留白不是键。
+            if (background != null) {
+                fill.color = background
+                // 亮度用整数近似就够：这里只要判断「深底配浅字」还是反过来。
+                val luminance = (299 * Color.red(background) + 587 * Color.green(background) + 114 * Color.blue(background)) / 1000
+                val dark = luminance < 128
+                label.color = if (dark) 0xFFEDEDED.toInt() else 0xFF6B6B6B.toInt()
+                rule.color = if (dark) 0x50FFFFFF else 0x40808080
+            } else {
+                // 取不到键盘底色就回到中性灰，不要留着上一套方案的颜色装成这一套。
+                fill.color = 0x14808080
+                label.color = 0xFF6B6B6B.toInt()
+                rule.color = 0x40808080
+            }
             requestLayout()
             invalidate()
         }

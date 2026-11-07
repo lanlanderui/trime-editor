@@ -15,19 +15,22 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.annotation.StringRes
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.PreferenceFragmentCompat
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.osfans.trime.data.theme.ThemeLoader.ThemeLoadError
 import com.osfans.trime.data.theme.ThemeLoader.ThemeLoadResult
 import com.osfans.trime.editor.databinding.ActivityThemeEditorBinding
 import com.osfans.trime.editor.ui.DiskBackedEditor
+import com.osfans.trime.editor.ui.EditorActivity
 import com.osfans.trime.editor.ui.preview.ThemeBoard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import com.osfans.trime.editor.ui.R as UiR
 
 /**
  * A theme editor screen: the keyboard it affects on top, a form for one part of
@@ -43,7 +46,7 @@ import timber.log.Timber
  * same file the board draws, and an editor for a theme that will not load can
  * only produce a file the preview cannot show.
  */
-abstract class ThemeEditorActivity : AppCompatActivity() {
+abstract class ThemeEditorActivity : EditorActivity() {
     private lateinit var binding: ActivityThemeEditorBinding
     protected lateinit var board: ThemeBoard
     protected var themeId: String = ""
@@ -60,6 +63,9 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
 
     /** The form for this screen; called once, after the theme loaded. */
     protected abstract fun createEditor(): Fragment
+
+    /** 这一页在目录栏里属于哪一章（[com.osfans.trime.editor.ui.proof.Outline] 的 id）。 */
+    protected abstract val outlineChapter: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +84,9 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
             return
         }
         board = ThemeBoard.attach(binding.boardHost)
+        // 两栏必须在第一次布局之前定下来：预览板是按实际宽度算键宽的，
+        // 先按整幅宽度画一遍、再把目录栏塞进去，键盘就会画到框外去。
+        applyTwoPane()
         binding.staleBanner.setOnClickListener { adoptFileFromDisk() }
         loadTheme()
     }
@@ -97,6 +106,18 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // 目录抽屉对所有页面都一样，只是这一页额外有「节」可以滚。
+        if (OutlineMenu.handle(
+                this,
+                item,
+                themeId,
+                themeName,
+                currentEditor()?.sections().orEmpty(),
+                ::scrollToSection,
+            )
+        ) {
+            return true
+        }
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
@@ -120,6 +141,8 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
         // A phone without the keyboard has nothing to go back to; the item
         // would only ever answer "not installed".
         menu.findItem(R.id.action_back_to_ime)?.isVisible = InputMethodApp.isInstalled(this)
+        // 平板上的目录栏是常驻的，再给一个入口就是重复。
+        menu.findItem(R.id.action_outline)?.isVisible = !resources.getBoolean(UiR.bool.ui_two_pane)
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -184,6 +207,10 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.settings, createEditor())
             .commit()
+        // 目录栏要从表单里读章节，表单必须先真的建起来（commit 是异步的）。
+        supportFragmentManager.executePendingTransactions()
+        bindOutline()
+        updateCaption()
     }
 
     /**
@@ -198,6 +225,58 @@ abstract class ThemeEditorActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.settings, fragment)
             .commit()
+        supportFragmentManager.executePendingTransactions()
+        bindOutline()
+        updateCaption()
+    }
+
+    /**
+     * 样张下面那行统计：由当前这一页自己算（见 [DiskBackedEditor.caption]）。
+     *
+     * 空串就整行收起来——大部分页面没有统计可说，留一条空行只会让人以为哪里没加载出来。
+     */
+    fun updateCaption() {
+        val text = currentEditor()?.caption().orEmpty()
+        binding.caption.text = text
+        binding.caption.visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
+    }
+
+    /**
+     * 两栏还是单栏，只在这里判定一次（`proof_two_pane` 由 `values-sw600dp` 覆盖）。
+     * 必须在第一次布局之前调用：预览板按实际宽度算键宽。
+     */
+    private fun applyTwoPane() {
+        val twoPane = resources.getBoolean(UiR.bool.ui_two_pane)
+        binding.outline.visibility = if (twoPane) View.VISIBLE else View.GONE
+        binding.outlineDivider.visibility = if (twoPane) View.VISIBLE else View.GONE
+    }
+
+    /**
+     * 目录栏按当前页的节重新渲染。
+     *
+     * 每次重建表单都要重来一遍：节是从 Preference 树里读出来的（见
+     * [DiskBackedEditor.sections]），缓一份就要记得在哪失效，忘一次就是
+     * 「点了跳到别处」。读一次的成本是几十个对象，不值得省。
+     */
+    private fun bindOutline() {
+        if (!resources.getBoolean(UiR.bool.ui_two_pane)) return
+        binding.outline.bind(
+            currentChapter = outlineChapter,
+            sections = currentEditor()?.sections().orEmpty(),
+            onChapter = { chapter ->
+                PageRouter.intent(this, chapter, themeId, themeName)?.let { startActivity(it) }
+            },
+            onSection = ::scrollToSection,
+        )
+    }
+
+    /** 节 = 滚到这一行。位置由表单自己算（可见项序号），这里只负责滚。 */
+    private fun scrollToSection(position: Int) {
+        val list =
+            (supportFragmentManager.findFragmentById(R.id.settings) as? PreferenceFragmentCompat)
+                ?.listView ?: return
+        val manager = list.layoutManager as? LinearLayoutManager
+        if (manager != null) manager.scrollToPositionWithOffset(position, 0) else list.scrollToPosition(position)
     }
 
     private fun showFailure(

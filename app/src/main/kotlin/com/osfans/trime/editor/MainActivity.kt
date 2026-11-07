@@ -7,20 +7,24 @@ package com.osfans.trime.editor
 
 import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
+import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.osfans.trime.editor.databinding.ActivityMainBinding
+import com.osfans.trime.editor.ui.AppearanceActivity
+import com.osfans.trime.editor.ui.EditorActivity
+import com.osfans.trime.editor.ui.skin.UiMode
 import com.osfans.trime.editor.workbench.DirectoryPickerDialog
 import com.osfans.trime.editor.workbench.StorageAccess
 import com.osfans.trime.editor.workbench.ThemeCardAdapter
@@ -38,7 +42,7 @@ import kotlinx.coroutines.withContext
  * will be opened from a row — the point of this screen is that a theme can be
  * looked at before anything is changed.
  */
-class MainActivity : AppCompatActivity() {
+class MainActivity : EditorActivity() {
     private lateinit var binding: ActivityMainBinding
 
     private val adapter = ThemeCardAdapter(::openTheme)
@@ -57,12 +61,20 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.root.applySystemBarInsets()
+        applyContentWidth()
         setSupportActionBar(binding.toolbar)
 
+        // 舞台皮肤没有顶栏：导航交给英雄区里的 ⋯ 和底部 dock（设计稿 B1）。
+        binding.toolbar.visibility = if (UiMode.caps.stageHeader) View.GONE else View.VISIBLE
+        binding.heroSwatches.cornerRadiusPx = dp(10).toFloat()
         binding.themes.layoutManager = LinearLayoutManager(this)
         binding.themes.adapter = adapter
-        binding.themes.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
         binding.changeDir.setOnClickListener { chooseDirectory() }
+        binding.dockDir.setOnClickListener { chooseDirectory() }
+        binding.dockRefresh.setOnClickListener { refresh() }
+        binding.dockAppearance.setOnClickListener { startActivity(Intent(this, AppearanceActivity::class.java)) }
+        binding.dockIme.setOnClickListener { InputMethodApp.launch(this) }
+        binding.heroMenu.setOnClickListener { showHeroMenu(it) }
         // 崩溃提示优先于首启引导：它解释「上次为什么没了」，引导讲「怎么用」。
         // 两者同时需要，只有「第一次启动就崩过」这一种情况，那时先解释崩溃。
         if (!reportLastCrash()) FirstRunGuide.showIfFirstRun(this)
@@ -109,10 +121,23 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * 平板上的内容列限宽。
+     *
+     * 848dp 一行铺满，卡片会被拉成三条横杠，M3 的「卡片」概念就不成立了。
+     * 限到 720dp 并居中，和「外观」页用的是同一个尺子。
+     */
+    private fun applyContentWidth() {
+        val side = ((resources.displayMetrics.widthPixels - dp(720)) / 2).coerceAtLeast(0)
+        if (side == 0) return
+        binding.content.setPadding(side, 0, side, binding.content.paddingBottom)
+    }
+
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -122,9 +147,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, "", "")) return true
         when (item.itemId) {
             R.id.action_refresh -> refresh()
             R.id.action_back_to_ime -> InputMethodApp.launch(this)
+            R.id.action_appearance -> startActivity(Intent(this, AppearanceActivity::class.java))
             R.id.action_help -> FirstRunGuide.show(this)
             else -> return super.onOptionsItemSelected(item)
         }
@@ -168,20 +195,54 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 val entries = withContext(Dispatchers.IO) { readThemes(dir) }
                 if (isFinishing || isDestroyed) return@launch
-                adapter.submit(entries)
-                if (entries.isEmpty()) {
-                    showPlaceholder(
-                        title = getString(R.string.state_empty_title),
-                        body = getString(R.string.state_empty_body),
-                        action = getString(R.string.action_change_dir),
-                    ) { chooseDirectory() }
-                } else {
-                    showList()
-                }
+                present(entries)
             }
     }
 
+    /**
+     * 把「当前主题」放上英雄区，其余的交给列表。
+     *
+     * 当前主题若不在目录里（换过目录、文件被删），退回第一份——英雄区不能空着，
+     * 它是这一页的主语；退回时标题仍然是那份主题自己的名字，不假装是「当前」。
+     */
+    private fun present(entries: List<ThemeEntry>) {
+        if (entries.isEmpty()) {
+            adapter.submit(emptyList())
+            showPlaceholder(
+                title = getString(R.string.state_empty_title),
+                body = getString(R.string.state_empty_body),
+                action = getString(R.string.action_change_dir),
+            ) { chooseDirectory() }
+            return
+        }
+        val hero = entries.firstOrNull { it.id == EditorPrefs.selectedTheme } ?: entries.first()
+        val others = entries.filter { it.id != hero.id }
+        binding.heroName.text = hero.name
+        binding.heroMeta.text = hero.id
+        binding.heroSwatches.setColors(hero.swatches.take(5))
+        binding.restLabel.text =
+            if (others.isEmpty()) {
+                getString(R.string.hero_no_other_theme)
+            } else {
+                getString(R.string.hero_other_themes, others.size)
+            }
+        adapter.submit(others)
+        showList()
+    }
+
+    /** 舞台没有 ActionBar，⋯ 用 PopupMenu 打开同一份菜单，功能不丢。 */
+    private fun showHeroMenu(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menuInflater.inflate(R.menu.main, popup.menu)
+        OutlineMenu.addTo(popup.menu, this)
+        popup.menu.findItem(R.id.action_back_to_ime)?.isVisible = InputMethodApp.isInstalled(this)
+        popup.setOnMenuItemClickListener { onOptionsItemSelected(it) }
+        popup.show()
+    }
+
     private fun openTheme(entry: ThemeEntry) {
+        // 快捷入口（输入法按键）没有 extra 可用，靠这个记住「你正在编辑哪一份」。
+        EditorPrefs.selectedTheme = entry.id
         startActivity(ThemePreviewActivity.intent(this, entry.id, entry.name))
     }
 

@@ -23,7 +23,13 @@ import com.osfans.trime.data.theme.ThemeSchemeWriter
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.ThemeTextFile
 import com.osfans.trime.editor.ui.DiskBackedEditor
+import com.osfans.trime.editor.ui.EditorSection
 import com.osfans.trime.editor.ui.R
+import com.osfans.trime.editor.ui.proof.PreferenceOutline
+import com.osfans.trime.editor.ui.proof.ProofChapter
+import com.osfans.trime.editor.ui.proof.ProofFormat
+import com.osfans.trime.editor.ui.proof.ProofRowSwitch
+import com.osfans.trime.editor.ui.proof.ProofRowValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -38,6 +44,9 @@ interface StyleEditorHost {
 
     /** Switches the colour scheme the board is drawn with. */
     fun applyScheme(schemeId: String)
+
+    /** 写盘之后重算样张下面那行统计（未设 / 本次已改）。 */
+    fun refreshCaption()
 }
 
 /**
@@ -65,6 +74,10 @@ class StyleEditorFragment :
 
     /** The file's contents the rows were built from; the baseline for conflicts. */
     private var expectedText: String = ""
+
+    /** 这一次会话里成功写盘的次数，以及本主题没写的字段数（见 [caption]）。 */
+    private var changedCount = 0
+    private var unsetCount = 0
 
     /**
      * Serialises saves.
@@ -114,6 +127,12 @@ class StyleEditorFragment :
         toast(R.string.style_reload_done)
     }
 
+    /** 样张下面的读数：还有多少字段本主题没写、这次改了几处。 */
+    override fun caption(): String = ProofFormat.caption(unsetCount, changedCount)
+
+    /** 目录栏的章节：从刚建好的偏好树里读，不另抄一份清单。 */
+    override fun sections(): List<EditorSection> = PreferenceOutline.sectionsOf(preferenceScreen)
+
     /** Rebuilds the whole screen from the file as it is now. */
     private fun rebuild() {
         val screen = preferenceScreen ?: return
@@ -124,10 +143,21 @@ class StyleEditorFragment :
             return
         }
         expectedText = document.text
+        // 本主题没写的字段（`Entry.source == ABSENT`）：它们走默认值。
+        unsetCount =
+            styleGroups.sumOf { group ->
+                group.fields.count {
+                    ThemeStyleWriter.readEntry(document.lines, it.key).source == ThemeStyleWriter.Source.ABSENT
+                }
+            }
         addFileCategory()
         addSchemeCategory()
         styleGroups.forEach { group ->
-            val category = PreferenceCategory(requireContext()).apply { title = getString(group.title) }
+            val category =
+                ProofChapter(requireContext()).apply {
+                    title = getString(group.title)
+                    setCount(group.fields.size)
+                }
             screen.addPreference(category)
             group.fields.forEach { field -> category.addPreference(buildPreference(field, document.lines)) }
         }
@@ -145,14 +175,15 @@ class StyleEditorFragment :
     /** The two actions that act on the file rather than on a value in it. */
     private fun addFileCategory() {
         val context = requireContext()
-        val category = PreferenceCategory(context).apply { title = getString(R.string.style_group_file) }
+        val category = ProofChapter(context).apply { title = getString(R.string.style_group_file) }
         preferenceScreen?.addPreference(category)
 
         category.addPreference(
-            Preference(context).apply {
+            ProofRowValue(context).apply {
                 key = KEY_UNDO
-                title = getString(R.string.style_undo)
-                summary = sourceFile.name
+                proofName = getString(R.string.style_undo)
+                showKey = false
+                setValue(sourceFile.name)
                 isEnabled = ThemeTextFile.hasBackup(sourceFile)
                 setOnPreferenceClickListener {
                     restoreBackup()
@@ -161,10 +192,11 @@ class StyleEditorFragment :
             },
         )
         category.addPreference(
-            Preference(context).apply {
+            ProofRowValue(context).apply {
                 key = KEY_RELOAD
-                title = getString(R.string.style_reload)
-                summary = sourceFile.absolutePath
+                proofName = getString(R.string.style_reload)
+                showKey = false
+                setValue(sourceFile.absolutePath)
                 setOnPreferenceClickListener {
                     reloadFromDisk()
                     true
@@ -193,13 +225,14 @@ class StyleEditorFragment :
                 scope.theme.presetColorSchemes.entries.firstOrNull { it.value == current }?.key
             } ?: schemes.firstOrNull()?.id.orEmpty()
 
-        val category = PreferenceCategory(context).apply { title = getString(R.string.studio_schemes_title) }
+        val category = ProofChapter(context).apply { title = getString(R.string.studio_schemes_title) }
         preferenceScreen?.addPreference(category)
         category.addPreference(
-            Preference(context).apply {
+            ProofRowValue(context).apply {
                 key = KEY_SCHEME
-                title = getString(R.string.studio_current_scheme)
-                summary = schemes.firstOrNull { it.id == active }?.displayName ?: active
+                proofName = getString(R.string.studio_current_scheme)
+                proofKey = active
+                setValue(schemes.firstOrNull { it.id == active }?.displayName ?: active)
                 setOnPreferenceClickListener {
                     showSchemePicker(schemes, active)
                     true
@@ -225,7 +258,10 @@ class StyleEditorFragment :
                     // activated, so a repaint is all the board needs — the
                     // layout did not change.
                     host?.applyScheme(scheme.id)
-                    findPreference<Preference>(KEY_SCHEME)?.summary = scheme.displayName
+                    (findPreference<Preference>(KEY_SCHEME) as? ProofRowValue)?.let {
+                        it.proofKey = scheme.id
+                        it.setValue(scheme.displayName)
+                    }
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -241,17 +277,17 @@ class StyleEditorFragment :
         // again, off the main thread, because it may have been edited elsewhere.
         val entry = ThemeStyleWriter.readEntry(lines, field.key)
         if (field.type == StyleFieldType.BOOL) {
-            return SwitchPreferenceCompat(requireContext()).apply {
+            return ProofRowSwitch(requireContext()).apply {
                 key = field.key
-                title = getString(field.title)
-                isChecked = boolOf(entry, lines)
-                summary = summaryOf(field, entry, lines)
+                proofName = getString(field.title)
+                proofKey = field.key
+                setChecked(boolOf(entry, lines))
                 setOnPreferenceChangeListener { preference, _ ->
                     viewLifecycleOwner.lifecycleScope.launch {
                         val current = readCurrent(field)
                         if (!isAdded || view == null) return@launch
                         val next = !(current?.equals("true", ignoreCase = true) ?: false)
-                        (preference as SwitchPreferenceCompat).isChecked = next
+                        (preference as ProofRowSwitch).setChecked(next)
                         commit(field, next.toString())
                     }
                     // Keep the switch under our control until the file agrees.
@@ -259,10 +295,13 @@ class StyleEditorFragment :
                 }
             }
         }
-        return Preference(requireContext()).apply {
+        return ProofRowValue(requireContext()).apply {
             key = field.key
-            title = getString(field.title)
-            summary = summaryOf(field, entry, lines)
+            proofName = getString(field.title)
+            proofKey = field.key
+            // 值就是文件里那个值（或它解析出来的锚点值）；没写这一项时显示「未设置」，
+            // 而不是一个空框——空框和「写了空」在界面上分不出来。
+            setValue(summaryOf(field, entry, lines), entry.source == ThemeStyleWriter.Source.ABSENT)
             setOnPreferenceClickListener {
                 // The snapshot above is only for display; the dialog always
                 // starts from what the file says now. Reading it takes a full
@@ -314,12 +353,8 @@ class StyleEditorFragment :
         expectedText = document.text
         styleGroups.forEach { group ->
             group.fields.forEach { field ->
-                val preference = findPreference<Preference>(field.key) ?: return@forEach
                 val entry = ThemeStyleWriter.readEntry(document.lines, field.key)
-                preference.summary = summaryOf(field, entry, document.lines)
-                if (preference is SwitchPreferenceCompat) {
-                    preference.isChecked = boolOf(entry, document.lines)
-                }
+                bindRow(field, entry, document.lines)
             }
         }
         findPreference<Preference>(KEY_UNDO)?.isEnabled = ThemeTextFile.hasBackup(sourceFile)
@@ -496,8 +531,11 @@ class StyleEditorFragment :
                     // The text the writer produced becomes the baseline for the
                     // next save, so a run of edits never reports a false conflict.
                     expectedText = result.text.orEmpty()
+                    // 「本次已改」只数这一次会话里写成功的次数，不参与写盘判断。
+                    changedCount++
                     applyWritten(field, value)
                     host?.reloadBoard()
+                    host?.refreshCaption()
                 }
 
                 ThemeTextFile.WriteOutcome.CONFLICT -> showConflictDialog(field, value)
@@ -507,16 +545,31 @@ class StyleEditorFragment :
         }
     }
 
+    /**
+     * 把一行重新填成文件里的样子。
+     *
+     * 行换成纸感之后不再有 `summary`：写盘回来只改 `summary` 会静默失败，
+     * 界面上就一直是旧值——而文件已经变了。所以这里按真实类型分派。
+     */
+    private fun bindRow(
+        field: StyleField,
+        entry: ThemeStyleWriter.Entry,
+        lines: List<String>,
+    ) {
+        val preference = findPreference<Preference>(field.key) ?: return
+        val text = summaryOf(field, entry, lines)
+        when (preference) {
+            is ProofRowSwitch -> preference.setChecked(boolOf(entry, lines))
+            is ProofRowValue -> preference.setValue(text, entry.source == ThemeStyleWriter.Source.ABSENT)
+            else -> preference.summary = text
+        }
+    }
+
     private fun applyWritten(
         field: StyleField,
         value: String,
     ) {
-        findPreference<Preference>(field.key)?.let { preference ->
-            if (preference is SwitchPreferenceCompat) {
-                preference.isChecked = value.equals("true", ignoreCase = true)
-            }
-            preference.summary = summaryOf(field, ThemeStyleWriter.writtenEntry(value), emptyList())
-        }
+        bindRow(field, ThemeStyleWriter.writtenEntry(value), emptyList())
         // The save just made a backup, so the row that undoes it has to become
         // tappable now — it was built when there was nothing to undo.
         findPreference<Preference>(KEY_UNDO)?.isEnabled = ThemeTextFile.hasBackup(sourceFile)

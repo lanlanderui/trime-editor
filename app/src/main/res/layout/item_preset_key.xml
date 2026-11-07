@@ -1,32 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 一个动作一行：左边是它叫什么，右边是它做什么 -->
+<!--
+  SPDX-FileCopyrightText: 2026 Rime community
+
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<!--
+  一个动作一行：中文名在上，键名与它做什么在下，缩进一个 gutter 的分隔线收尾。
+
+  这一列有两百多行，所以两行都只占一行、不换行：名字与键名各自截断，
+  至少每一行的开头是对齐的，扫起来才有一个稳定的落点。
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:orientation="vertical"
-    android:paddingHorizontal="20dp"
-    android:paddingVertical="12dp">
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/name"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="16sp" />
+        android:orientation="vertical"
+        android:paddingStart="@dimen/ui_gutter"
+        android:paddingTop="@dimen/ui_row_pad_v"
+        android:paddingEnd="@dimen/ui_gutter"
+        android:paddingBottom="@dimen/ui_row_pad_v">
 
-    <TextView
-        android:id="@+id/detail"
+        <TextView
+            android:id="@+id/name"
+            style="@style/Ui.Name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/detail"
+            style="@style/Ui.Meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:singleLine="true" />
+    </LinearLayout>
+
+    <View
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="?android:attr/textColorSecondary"
-        android:textSize="12sp" />
-
+        android:layout_height="1dp"
+        android:layout_marginStart="@dimen/ui_gutter"
+        android:layout_marginEnd="@dimen/ui_gutter"
+        android:background="?attr/ui_rule" />
 </LinearLayout>

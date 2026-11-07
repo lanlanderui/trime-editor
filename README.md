@@ -20,13 +20,47 @@
 
 写盘一律**只改目标行**：注释、缩进、字段顺序、行尾（CRLF/LF）都按原样保留。这一条有单测兜着——真主题 4234 行 / 50 个布局 / 2465 条键行，读出来再写回去必须逐字节相同。
 
+
+## 外观
+
+0.3.0 起界面是「一套 token + 三套皮肤」。皮肤不含任何行为，换皮肤只换资源：
+
+| 皮肤 | id | 说明 |
+|---|---|---|
+| 校样 | `proof` | 0.2.x 的纸感观感（米白纸底、衬线标题、朱红标记），保留用于回退 |
+| 层叠 | `m3-tonal` | **默认**。Material You 的取色与色调，卡片分组，圆角 16 / 12 / 20 |
+| 舞台 | `m3-expressive` | 可选。暖陶土色板、大字号、色块头、悬浮底栏 |
+
+选哪一套存在 `EditorPrefs.skinId`，在「外观」页切换。切换用 `theme.applyStyle()` 而不是
+`setTheme()`——三个快捷入口在清单里挂了半透明主题，`setTheme` 会把它们换成白屏；
+切完当前页 `recreate()`，返回栈里的页面在 `onResume` 自检后重建。
+
+三件事是单一来源：
+
+- **token**：`editor-ui/src/main/res/values/attrs.xml` 声明 `ui_*` 属性；三张 overlay 在
+  `app/src/main/res/values/skins.xml` 给值，色板在 `ui_palette_*.xml`（`values-night` 各一份）。
+  尺寸（gutter、色块边长、hex 列宽）仍是 `editor-ui/.../values/ui_dimens.xml`，平板在
+  `values-sw600dp` 覆盖。
+- **页面**：布局与自绘 View 只写 `?attr/ui_*`，不写颜色字面量；代码侧唯一出口是
+  `UiTokens.color / dimen / card / field / swatch`。
+- **结构差异**：只允许 `SkinCaps` 的三个开关（`stageHeader` / `floatingDock` / `segmented`），
+  由基类 `EditorActivity.applyChrome()` 统一施加（它认工具栏和 `ui_dock` 标签），页面里不出现
+  「这是哪套皮肤」的判断。
+
+平板（≥600dp）仍是「目录栏 + 内容」两栏，判定只此一处（`ui_two_pane`）。目录栏的章是九个页面、
+节取当前页的真实分组（`PreferenceOutline` 从偏好树里读，不另存一份清单），点节滚到那一行，点章换页。
+
 ## 与输入法的版本配对
 
 编辑器和输入法共用主题文件格式，格式跟的是**输入法的版本**，不是编辑器的：
 
 | 编辑器 | 配套输入法 | 说明 |
 |---|---|---|
-| 0.1.x | 同文输入法03 `appearance-03-my2` 及以上（`com.osfans.trime03`） | 主题格式 `config_version: 3.0` |
+| 0.3.x | 原版同文输入法（`com.osfans.trime`） | 只改界面，主题格式同 0.2.x |
+| 0.2.x | 原版同文输入法（`com.osfans.trime`） | 主题格式 `config_version: 3.0` |
+| 0.1.x | 同文输入法03 `appearance-03-my2`（`com.osfans.trime03`） | 已不再推进，仅保留兼容 |
+
+「回到输入法」认识这四个包（原版 / 原版调试 / 03 / 03 调试），**原版优先**：装了原版就打开原版，只装了 03 的设备仍能打开 03。选包走系统的已启用输入法列表，系统默认输入法优先于列表顺序。
 
 输入法侧的复核（`.revision` + 内容哈希）从 `com.osfans.trime03` 的 D5 版本开始才有；更早的输入法不会自动重载，改完需要切换一下键盘或重启输入法。编辑器写出的 `.revision` 只是给输入法看的一行计数，删除无害。
 

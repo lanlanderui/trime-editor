@@ -38,8 +38,14 @@ import com.osfans.trime.data.theme.ThemeSchemeWriter
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.ThemeTextFile
 import com.osfans.trime.editor.ui.DiskBackedEditor
+import com.osfans.trime.editor.ui.EditorSection
 import com.osfans.trime.editor.ui.R
 import com.osfans.trime.editor.ui.dp
+import com.osfans.trime.editor.ui.proof.PreferenceOutline
+import com.osfans.trime.editor.ui.proof.ProofChapter
+import com.osfans.trime.editor.ui.proof.ProofFormat
+import com.osfans.trime.editor.ui.proof.ProofRow
+import com.osfans.trime.editor.ui.proof.ProofRowValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -61,6 +67,9 @@ interface ColorEditorHost {
      * than leaving the rows pointing at a block that is no longer in the file.
      */
     fun onSchemeChanged(edit: String)
+
+    /** 写盘之后重算样张下面那行统计（未设 / 本次已改）。 */
+    fun refreshCaption()
 
     /** Which half of a day/night pair the board is painting with. */
     fun previewState(): PreviewState
@@ -114,6 +123,10 @@ class ColorSchemeFragment :
     /** Every scheme the file had when the rows were built, in file order. */
     private var knownSchemes: List<ThemeSchemeWriter.Scheme> = emptyList()
 
+    /** 这一次会话里成功写盘的次数，以及本方案没写的色键数（见 [caption]）。 */
+    private var changedCount = 0
+    private var unsetCount = 0
+
     private val host: ColorEditorHost? get() = activity as? ColorEditorHost
 
     override fun onCreatePreferences(
@@ -147,6 +160,12 @@ class ColorSchemeFragment :
         return current != expectedText
     }
 
+    /** 样张下面的读数：还有多少色键没在本方案里写、这次改了几处。 */
+    override fun caption(): String = ProofFormat.caption(unsetCount, changedCount)
+
+    /** 目录栏的章节：从建好的偏好树里读，和页面上的分组一一对应。 */
+    override fun sections(): List<EditorSection> = PreferenceOutline.sectionsOf(preferenceScreen)
+
     /** Rebuilds the whole screen from the file as it is now. */
     private fun rebuild() {
         val screen = preferenceScreen ?: return
@@ -174,81 +193,98 @@ class ColorSchemeFragment :
             return
         }
 
+        // 没写在本方案里的色键数：这些走 fallback 链，行里标「继承」。
+        unsetCount = keys.count { it !in ownValues }
+
         // Grouped the way a keyboard is read, so a colour is found by what it
         // paints instead of by remembering its YAML name. Groups the theme does
         // not use are dropped rather than shown empty.
         for ((group, groupKeys) in ColorKeyGroups.group(keys)) {
-            val category =
-                PreferenceCategory(requireContext()).apply {
-                    title = getString(R.string.color_group_header, getString(groupTitle(group)), groupKeys.size)
+            // 章头只写组名，项数挪到右边那一列（ProofChapter.setCount），
+            // 这样「候选栏与编码区」不会因为后面挂了个括号而长短不一。
+            val chapter =
+                ProofChapter(requireContext()).apply {
+                    title = getString(groupTitle(group))
+                    setCount(groupKeys.size)
                 }
-            screen.addPreference(category)
-            groupKeys.forEach { category.addPreference(colorRow(it, ownValues)) }
+            screen.addPreference(chapter)
+            groupKeys.forEach { chapter.addPreference(colorRow(it, ownValues)) }
         }
     }
 
     /**
-     * Add / rename / delete, above the colours.
+     * 方案与预览：两行，不是四行。
      *
-     * The three rows sit next to the palette they act on instead of behind a
-     * menu: creating a scheme is the first thing a user does with a theme, and
-     * the row says which scheme the copy comes from and — when only one is left
-     * — that it can no longer be deleted.
+     * 原来「新建 / 重命名 / 删除」三行平铺，占掉小半屏才轮到颜色，而这三件事
+     * 一次只做一件。收成一行「方案」，点开是菜单。预览明暗单独留一行：它是
+     * 「为什么行里的色和右边键盘不一样」的唯一解释，不能藏进菜单里。
      */
     private fun buildSchemeRows(screen: PreferenceScreen) {
-        val category =
-            PreferenceCategory(requireContext()).apply {
+        val chapter =
+            ProofChapter(requireContext()).apply {
                 title = getString(R.string.color_scheme_group)
             }
         // 铁律：category 必须先挂上 screen 再加子项，否则 NPE，单测也碰不到。
-        screen.addPreference(category)
-        category.addPreference(newSchemeRow())
-        category.addPreference(renameSchemeRow())
-        category.addPreference(deleteSchemeRow())
-        buildPreviewRow(screen)
+        screen.addPreference(chapter)
+        chapter.addPreference(schemeRow())
+        previewRow()?.let { chapter.addPreference(it) }
+    }
+
+    /** 一行「方案」：值是这个方案的名字，点开是它能做的三件事。 */
+    private fun schemeRow(): Preference = ProofRowValue(requireContext()).apply {
+        key = KEY_SCHEME
+        proofName = getString(R.string.color_scheme_group)
+        proofKey = schemeId
+        value = displayNameOf(schemeId)
+        setOnPreferenceClickListener {
+            showSchemeMenu()
+            true
+        }
+    }
+
+    private fun showSchemeMenu() {
+        val canDelete = knownSchemes.size > 1
+        val items =
+            arrayOf(
+                getString(R.string.color_scheme_new),
+                getString(R.string.color_scheme_rename),
+                getString(R.string.color_scheme_delete),
+            )
+        AlertDialog.Builder(requireContext())
+            .setTitle(displayNameOf(schemeId))
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> showNewSchemeDialog()
+
+                    1 -> showRenameDialog()
+
+                    // 只剩一个方案时菜单照样列出来，点了说清为什么不能删——
+                    // 比直接把这一项藏掉更不容易让人以为界面出了问题。
+                    else -> if (canDelete) showDeleteDialog() else toast(R.string.color_scheme_last)
+                }
+            }
+            .show()
     }
 
     /**
-     * What the board is showing, and a way to force the other half.
+     * 右边那块板现在画的是哪一半。
      *
-     * A scheme that declares `dark_scheme` is painted by its twin whenever the
-     * device is in night mode. Without this row the light block's rows and a
-     * dark board look like two different themes — the user would go looking for
-     * the bug in the file instead of in the clock.
+     * 声明了 `dark_scheme` 的方案在夜间会被孪生方案画出来。没有这一行，行里的
+     * 颜色和上方的键盘会像两套主题——人会去文件里找 bug，而问题在时钟上。
      */
-    private fun buildPreviewRow(screen: PreferenceScreen) {
-        val host = host ?: return
+    private fun previewRow(): Preference? {
+        val host = host ?: return null
         val state = host.previewState()
-        val category =
-            PreferenceCategory(requireContext()).apply {
-                title = getString(R.string.color_preview_group)
+        return ProofRowValue(requireContext()).apply {
+            key = KEY_PREVIEW_NIGHT
+            proofName = getString(R.string.color_preview_night)
+            proofKey = "night"
+            value = getString(modeLabel(state.mode))
+            setOnPreferenceClickListener {
+                showNightModeDialog(host, state.mode)
+                true
             }
-        screen.addPreference(category)
-        category.addPreference(
-            Preference(requireContext()).apply {
-                key = KEY_PREVIEW_NIGHT
-                title = getString(R.string.color_preview_night)
-                // Naming both sides is the point: a scheme with a `dark_scheme`
-                // link is painted by its twin at night, so the rows and the
-                // board can describe two different blocks without anything
-                // being broken.
-                summary =
-                    getString(modeLabel(state.mode)) + " · " +
-                    if (state.schemeId == schemeId) {
-                        getString(R.string.color_preview_showing, displayNameOf(state.schemeId))
-                    } else {
-                        getString(
-                            R.string.color_preview_showing_other,
-                            displayNameOf(state.schemeId),
-                            displayNameOf(schemeId),
-                        )
-                    }
-                setOnPreferenceClickListener {
-                    showNightModeDialog(host, state.mode)
-                    true
-                }
-            },
-        )
+        }
     }
 
     private fun modeLabel(mode: NightMode): Int = when (mode) {
@@ -272,41 +308,6 @@ class ColorSchemeFragment :
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
-    }
-
-    private fun newSchemeRow(): Preference = Preference(requireContext()).apply {
-        key = KEY_NEW
-        title = getString(R.string.color_scheme_new)
-        summary = getString(R.string.color_scheme_new_summary, displayNameOf(schemeId))
-        setOnPreferenceClickListener {
-            showNewSchemeDialog()
-            true
-        }
-    }
-
-    private fun renameSchemeRow(): Preference = Preference(requireContext()).apply {
-        key = KEY_RENAME
-        title = getString(R.string.color_scheme_rename)
-        summary = getString(R.string.color_scheme_rename_summary, displayNameOf(schemeId))
-        setOnPreferenceClickListener {
-            showRenameDialog()
-            true
-        }
-    }
-
-    private fun deleteSchemeRow(): Preference = Preference(requireContext()).apply {
-        key = KEY_DELETE
-        title = getString(R.string.color_scheme_delete)
-        if (knownSchemes.size <= 1) {
-            isEnabled = false
-            summary = getString(R.string.color_scheme_last)
-        } else {
-            summary = getString(R.string.color_scheme_delete_summary)
-            setOnPreferenceClickListener {
-                showDeleteDialog()
-                true
-            }
-        }
     }
 
     /** The label a scheme shows in the list, falling back to its id. */
@@ -573,23 +574,47 @@ class ColorSchemeFragment :
         val own = ownValues[key]
         val source = if (own == null) ColorTable.resolveRawSource(key, ownValues, fallback) else null
         val shown = own ?: source?.second
-        val summary =
+        // 文件里写的是什么（可能是 `*color2`），和它实际画出来是什么颜色，是两件事：
+        // 前者要能抄走，后者要能看见。锚点只有 YAML 解析之后才有颜色，所以去主题里取。
+        val resolved = resolvedColor(key, shown)
+        val anchor =
             when {
-                own != null -> "$key · $own"
-                source != null -> "$key · " + getString(R.string.color_scheme_value_inherited, source.first)
-                else -> "$key · " + getString(R.string.color_scheme_value_unset)
+                own?.startsWith("*") == true -> own
+                source != null -> getString(R.string.color_scheme_value_inherited, source.first)
+                else -> null
             }
-        return Preference(requireContext()).apply {
+        return ProofRow(requireContext()).apply {
             this.key = key
-            isIconSpaceReserved = true
-            title = COLOR_LABELS[key]?.let { getString(it) }
-            this.summary = summary
-            ColorLiteral.parse(shown)?.let { icon = requireContext().colorSwatch(it) }
+            proofName = COLOR_LABELS[key]?.let { getString(it) } ?: key
+            proofKey = key
+            proofAnchor = anchor
+            swatchColor = resolved
+            hex =
+                when {
+                    resolved != null -> ProofFormat.hex(resolved)
+                    shown == null -> ProofFormat.UNSET
+                    else -> shown
+                }
             setOnPreferenceClickListener {
-                showColorDialog(key, shown)
+                showColorDialog(key, shown, resolved)
                 true
             }
         }
+    }
+
+    /**
+     * 一个色键实际画出来的颜色。
+     *
+     * 主题里大量是 `*color2` 这种锚点，文本层面没有颜色，只有 YAML 解析后才有；
+     * 解析拿不到就返回 null——宁可不画色块，也不画一个看起来像真的错颜色。
+     */
+    private fun resolvedColor(
+        key: String,
+        shown: String?,
+    ): Int? {
+        ColorLiteral.parse(shown)?.let { return it }
+        val raw = ColorManager.currentScope()?.theme?.presetColorSchemes?.get(schemeId)?.get(key) ?: return null
+        return ColorLiteral.parse(raw)
     }
 
     private fun groupTitle(group: ColorGroup): Int = when (group) {
@@ -615,9 +640,12 @@ class ColorSchemeFragment :
     private fun showColorDialog(
         key: String,
         current: String?,
+        resolved: Int? = null,
     ) {
         val context = requireContext()
-        val original = ColorLiteral.parse(current) ?: Color.WHITE
+        // 锚点（`*color2`）在文本里没有颜色：输入框保留原文，取色器和「改前」
+        // 色块用解析出来的那个色，否则一点开就是一片白，跟行里显示的色块打架。
+        val original = ColorLiteral.parse(current) ?: resolved ?: Color.WHITE
 
         val picker =
             ColorPickerView(context).apply {
@@ -690,6 +718,10 @@ class ColorSchemeFragment :
             .setView(container)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val raw = input.text.toString().trim()
+                // 没改动就不写。这一点在锚点上尤其要紧：`*color2` 解析不成颜色，
+                // 旧代码会先弹「颜色无效」；而如果放行，一按确定就把它写成字面量，
+                // 主题里那套调色板链接从此断了，文件里再也看不出它原来指向谁。
+                if (raw == current?.trim()) return@setPositiveButton
                 if (ColorLiteral.parse(raw) == null) {
                     toast(R.string.color_scheme_color_invalid)
                     return@setPositiveButton
@@ -832,7 +864,11 @@ class ColorSchemeFragment :
                     // next save, so a run of edits never reports a false conflict.
                     ThemeTextFile.WriteOutcome.WRITTEN -> {
                         expectedText = result.text.orEmpty()
+                        // 「本次已改」数的是这一次会话里写成功的次数：它只回答
+                        // 「我刚动过几处」，不参与任何写盘判断。
+                        changedCount++
                         onWritten()
+                        host?.refreshCaption()
                     }
 
                     ThemeTextFile.WriteOutcome.CONFLICT -> showConflictDialog { attempt(null) }
@@ -889,6 +925,7 @@ class ColorSchemeFragment :
         private const val ARG_SCHEME_ID = "scheme_id"
 
         /** Preference keys, so the three rows are findable from a test. */
+        private const val KEY_SCHEME = "scheme"
         private const val KEY_NEW = "scheme_new"
         private const val KEY_RENAME = "scheme_rename"
         private const val KEY_DELETE = "scheme_delete"

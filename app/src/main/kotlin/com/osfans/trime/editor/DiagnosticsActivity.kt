@@ -8,6 +8,8 @@ package com.osfans.trime.editor
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -16,15 +18,16 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ThemeDiagnostics
 import com.osfans.trime.data.theme.ThemeLoader
 import com.osfans.trime.editor.databinding.ActivityDiagnosticsBinding
+import com.osfans.trime.editor.ui.EditorActivity
+import com.osfans.trime.editor.ui.skin.UiTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.osfans.trime.editor.ui.R as UiR
 
 /**
  * Everything the theme linter found, grouped by how much it matters.
@@ -35,12 +38,15 @@ import kotlinx.coroutines.withContext
  * `preset_keys/Keyboard_letter` is useless on its own; the row it belongs to is
  * one tap away.
  */
-class DiagnosticsActivity : AppCompatActivity() {
+class DiagnosticsActivity : EditorActivity() {
     private lateinit var binding: ActivityDiagnosticsBinding
 
     private var themeId: String = ""
     private var themeName: String = ""
     private var findings: List<ThemeDiagnostics.Finding>? = null
+
+    /** null = 全部；否则只显示这一档。 */
+    private var filter: ThemeDiagnostics.Severity? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +69,7 @@ class DiagnosticsActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.editor, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -72,6 +79,7 @@ class DiagnosticsActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, themeId, themeName)) return true
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
@@ -111,14 +119,19 @@ class DiagnosticsActivity : AppCompatActivity() {
                 else -> {
                     val errors = all.count { it.severity == ThemeDiagnostics.Severity.ERROR }
                     val warnings = all.count { it.severity == ThemeDiagnostics.Severity.WARNING }
-                    getString(R.string.dg_summary, all.size, errors, warnings)
+                    // 提示也要报数：76 ≠ 0 + 73，少了三个「提示」会让人以为统计错了。
+                    val hints = all.size - errors - warnings
+                    getString(R.string.dg_summary, all.size, errors, warnings, hints)
                 }
             }
+
+        buildFilters(all.orEmpty())
 
         val column =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(dp(20), dp(4), dp(20), dp(24))
+                // 左右交给行自己（行里有 20dp），这里只留上下。
+                setPadding(0, dp(4), 0, dp(24))
             }
         val scroll = ScrollView(this).apply { addView(column) }
         binding.content.removeAllViews()
@@ -133,43 +146,138 @@ class DiagnosticsActivity : AppCompatActivity() {
         if (all.isNullOrEmpty()) return
 
         // Errors first: the list is read top-down and the first rows should be the
-        // ones worth acting on.
-        all.sortedBy { it.severity.ordinal }.forEach { finding ->
-            column.addView(row(finding))
+        // ones worth acting on. The enum is declared INFO → WARNING → ERROR, so this
+        // has to be descending — the ascending sort it used to be put every 提示 on top.
+        all.filter { filter == null || it.severity == filter }
+            .sortedByDescending { it.severity.ordinal }
+            .forEach { finding ->
+                column.addView(row(finding))
+            }
+    }
+
+    /**
+     * 按严重度筛选：四块芯片，数字是真实条数。
+     *
+     * 只按严重度分，不按「配色 / 样式 / 动作」分：那个分类要靠 `jump()` 里的
+     * 目标页去反推，一旦某条发现改投别处，分类就悄悄错了。严重度是数据本身带的。
+     */
+    private fun buildFilters(all: List<ThemeDiagnostics.Finding>) {
+        val bar = binding.filters
+        bar.removeAllViews()
+        binding.filterBar.visibility = View.VISIBLE
+
+        fun chip(
+            label: String,
+            count: Int,
+            severity: ThemeDiagnostics.Severity?,
+        ) {
+            val selected = filter == severity
+            val chip =
+                TextView(this).apply {
+                    text = "$label $count"
+                    textSize = 11f
+                    typeface = Typeface.MONOSPACE
+                    setPadding(dp(11), dp(5), dp(11), dp(5))
+                    background = chipBackground(selected)
+                    setTextColor(
+                        UiTokens.color(
+                            this@DiagnosticsActivity,
+                            if (selected) UiR.attr.ui_paper else UiR.attr.ui_ink_2,
+                        ),
+                    )
+                    setOnClickListener {
+                        filter = severity
+                        render()
+                    }
+                }
+            bar.addView(
+                chip,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply { marginEnd = dp(6) },
+            )
+        }
+
+        chip(getString(R.string.dg_filter_all), all.size, null)
+        chip(getString(R.string.dg_filter_error), all.count { it.severity == ThemeDiagnostics.Severity.ERROR }, ThemeDiagnostics.Severity.ERROR)
+        chip(getString(R.string.dg_filter_warning), all.count { it.severity == ThemeDiagnostics.Severity.WARNING }, ThemeDiagnostics.Severity.WARNING)
+        chip(getString(R.string.dg_filter_info), all.count { it.severity == ThemeDiagnostics.Severity.INFO }, ThemeDiagnostics.Severity.INFO)
+    }
+
+    /** 选中的芯片是实心墨，其余是描边——和预览页的方案芯片同一种语言。 */
+    private fun chipBackground(selected: Boolean): GradientDrawable = GradientDrawable().apply {
+        cornerRadius = dp(4).toFloat()
+        if (selected) {
+            setColor(UiTokens.color(this@DiagnosticsActivity, UiR.attr.ui_ink))
+        } else {
+            setColor(0)
+            setStroke(dp(1), UiTokens.color(this@DiagnosticsActivity, UiR.attr.ui_rule_strong))
         }
     }
 
+    /**
+     * 一条发现：严重度、位置、说明，下面一条缩进的分隔线。
+     *
+     * 严重度写在最上面一行而不是做成色块：这一页要扫的是「哪里错了」，
+     * 色块会先把注意力吸到左边那条边上。
+     */
     private fun row(finding: ThemeDiagnostics.Finding): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(0, dp(10), 0, dp(10))
         isClickable = true
+        setBackgroundResource(android.R.drawable.list_selector_background)
         setOnClickListener { jump(finding) }
 
-        addView(
+        val body =
+            LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(20), dp(10), dp(20), dp(10))
+            }
+        addView(body)
+
+        body.addView(
             TextView(context).apply {
                 text = severityLabel(finding.severity)
-                textSize = 11f
+                textSize = 9f
+                typeface = Typeface.MONOSPACE
                 setTextColor(
-                    ContextCompat.getColor(
+                    UiTokens.color(
                         context,
-                        if (finding.severity == ThemeDiagnostics.Severity.ERROR) R.color.warn else R.color.chip_text,
+                        if (finding.severity == ThemeDiagnostics.Severity.ERROR) {
+                            UiR.attr.ui_accent
+                        } else {
+                            UiR.attr.ui_muted
+                        },
                     ),
                 )
             },
         )
-        addView(
-            TextView(context).apply {
-                text = finding.path.orEmpty()
-                textSize = 13f
-                setTextColor(ContextCompat.getColor(context, R.color.chip_text))
-                visibility = if (finding.path.isNullOrEmpty()) View.GONE else View.VISIBLE
-            },
-        )
-        addView(
+        if (!finding.path.isNullOrEmpty()) {
+            body.addView(
+                TextView(context).apply {
+                    text = finding.path
+                    textSize = 10f
+                    typeface = Typeface.MONOSPACE
+                    setTextColor(UiTokens.color(context, UiR.attr.ui_muted))
+                },
+            )
+        }
+        body.addView(
             TextView(context).apply {
                 text = finding.message
                 textSize = 13f
-                setLineSpacing(0f, 1.2f)
+                setLineSpacing(0f, 1.25f)
+                setTextColor(UiTokens.color(context, UiR.attr.ui_ink))
+            },
+        )
+
+        addView(
+            View(context).apply {
+                setBackgroundColor(UiTokens.color(context, UiR.attr.ui_rule))
+            },
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                marginStart = dp(20)
+                marginEnd = dp(20)
             },
         )
     }

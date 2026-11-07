@@ -12,15 +12,15 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
+        style="@style/Ui.Toolbar"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand_primary"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-        app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
+        app:popupTheme="@style/ThemeOverlay.AppCompat.DayNight"
+        app:theme="@style/ThemeOverlay.AppCompat.DayNight" />
 
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/note_fill"
+        android:background="?attr/ui_sheet"
         android:scrollbars="none">
 
         <LinearLayout
@@ -37,7 +37,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/divider" />
+        android:background="?attr/ui_rule_strong" />
 
     <FrameLayout
         android:id="@+id/content"

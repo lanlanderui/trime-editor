@@ -7,7 +7,7 @@
 package com.osfans.trime.editor
 
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import com.osfans.trime.editor.ui.EditorActivity
 
 /**
  * 只在调试包里存在：打开就抛一次没人接的异常。
@@ -22,7 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
  *
  * 发布包没有这个类，也没有对应的清单条目（都在 `src/debug`）。
  */
-class CrashProbeActivity : AppCompatActivity() {
+class CrashProbeActivity : EditorActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 在 onCreate 里抛，而不是字段初始化：那样栈顶会落在类初始化上，

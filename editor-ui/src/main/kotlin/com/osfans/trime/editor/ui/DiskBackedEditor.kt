@@ -27,4 +27,19 @@ interface DiskBackedEditor {
 
     /** Rebuilds the form, and its conflict baseline, from the file as it is now. */
     fun reloadFromDisk()
+
+    /**
+     * The sections this form is divided into, in list order, with their positions.
+     *
+     * The rail renders exactly this — it does not keep its own list of headings.
+     * A second copy would drift the first time a group is added or reordered,
+     * and the failure mode is a jump that lands somewhere plausible.
+     */
+    fun sections(): List<EditorSection> = emptyList()
+
+    /**
+     * 样张下面那行统计，例如「未设 8 · 本次已改 3」；空串表示这一页没有统计可说，
+     * 界面会把整行收起来。
+     */
+    fun caption(): String = ""
 }

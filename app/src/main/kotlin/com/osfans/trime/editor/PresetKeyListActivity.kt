@@ -16,7 +16,6 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,6 +32,7 @@ import com.osfans.trime.editor.databinding.ActivityPresetKeyListBinding
 import com.osfans.trime.editor.kbd.PresetKeyAdapter
 import com.osfans.trime.editor.kbd.PresetKeyEditorDialog
 import com.osfans.trime.editor.kbd.PresetKeyRow
+import com.osfans.trime.editor.ui.EditorActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,7 +50,7 @@ import java.io.File
  * The list is sorted by kind rather than by file order — 240 entries in file
  * order is a wall of letters with the three `command:` keys buried in it.
  */
-class PresetKeyListActivity : AppCompatActivity() {
+class PresetKeyListActivity : EditorActivity() {
     private lateinit var binding: ActivityPresetKeyListBinding
 
     private val adapter = PresetKeyAdapter(::open)
@@ -105,6 +105,7 @@ class PresetKeyListActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.editor, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -114,6 +115,7 @@ class PresetKeyListActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, themeId, themeName)) return true
         when (item.itemId) {
             android.R.id.home -> {
                 finish()

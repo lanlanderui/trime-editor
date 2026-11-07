@@ -13,6 +13,12 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
@@ -35,4 +41,10 @@ dependencies {
     implementation(libs.community.material.typeface) {
         artifact { type = "aar" }
     }
+
+    // ProofFormat 是纯字符串规则，能在 JVM 上跑：颜色写法一改就有一条用例
+    // 跟着变，不用开模拟器看颜色对不对。
+    testImplementation(libs.junit)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
 }

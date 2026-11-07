@@ -13,7 +13,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -27,6 +26,7 @@ import com.osfans.trime.data.theme.kbd.ThemePatchDetector
 import com.osfans.trime.editor.databinding.ActivityKeyboardListBinding
 import com.osfans.trime.editor.kbd.KeyboardCardAdapter
 import com.osfans.trime.editor.kbd.KeyboardRow
+import com.osfans.trime.editor.ui.EditorActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,7 +44,7 @@ import timber.log.Timber
  * `.custom.yaml` is going to overrule it. Those are exactly the three ways an
  * edit here can fail to show up on the keyboard.
  */
-class KeyboardListActivity : AppCompatActivity() {
+class KeyboardListActivity : EditorActivity() {
     private lateinit var binding: ActivityKeyboardListBinding
 
     private val adapter = KeyboardCardAdapter(::open)
@@ -89,6 +89,7 @@ class KeyboardListActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.editor, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -98,6 +99,7 @@ class KeyboardListActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, themeId, themeName)) return true
         when (item.itemId) {
             android.R.id.home -> {
                 finish()

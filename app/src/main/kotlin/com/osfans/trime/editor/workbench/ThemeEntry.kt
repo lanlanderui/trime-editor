@@ -41,24 +41,42 @@ data class ThemeEntry(
      */
     val swatches: List<Int> get() = theme?.let(::swatchesOf).orEmpty()
 
-    private companion object {
-        val SWATCH_KEYS =
-            listOf(
-                "keyboard_back_color",
-                "key_back_color",
-                "key_text_color",
-                "hilited_key_back_color",
-                "hilited_key_text_color",
+    /**
+     * 「50 布局 · 54 色键 · 10 方案」，全部来自已经读进内存的主题，不再多读一次文件。
+     *
+     * 不写行数：那要把 200 KB 的 YAML 再数一遍，而列表在滚动时只为了一行数字
+     * 去读盘并不划算；行数在页脚和诊断页都能看到。
+     */
+    val counts: String
+        get() {
+            val loaded = theme ?: return ""
+            val schemes = loaded.presetColorSchemes
+            val keys = (schemes[DEFAULT_SCHEME] ?: schemes.values.firstOrNull())?.size ?: 0
+            return "%d 布局 · %d 色键 · %d 方案".format(
+                loaded.presetKeyboards.size,
+                keys,
+                schemes.size,
             )
+        }
 
+    private companion object {
         const val DEFAULT_SCHEME = "default"
+
+        /**
+         * 方案的前几个色，按文件里的顺序。
+         *
+         * 上限 6 个，是卡片化的代价：旧版把四十多个色全画成一条细带，那是「按顺序
+         * 罗列」；放进 16dp 圆角的卡片里之后，那条带变成了彩虹，读不出任何东西，
+         * 还盖过了主题名。取前 6 个至少能看出「是深色还是浅色、偏冷还是偏暖」。
+         *
+         * 显示不全不影响判断：真正的配色在配色页，四十多个色一个不少。
+         */
+        const val SWATCH_LIMIT = 6
 
         fun swatchesOf(theme: Theme): List<Int> {
             val schemes = theme.presetColorSchemes
             val scheme = schemes[DEFAULT_SCHEME] ?: schemes.values.firstOrNull() ?: return emptyList()
-            return SWATCH_KEYS
-                .mapNotNull { key -> scheme[key]?.let(::parseOrNull) }
-                .ifEmpty { scheme.values.mapNotNull(::parseOrNull).take(SWATCH_KEYS.size) }
+            return scheme.values.mapNotNull(::parseOrNull).take(SWATCH_LIMIT)
         }
 
         @ColorInt

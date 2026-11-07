@@ -24,10 +24,14 @@ class StyleEditorActivity :
     StyleEditorHost {
     override val subtitleRes: Int get() = R.string.style_editor_title
 
+    override val outlineChapter: String get() = "style"
+
     override fun createEditor(): Fragment = StyleEditorFragment.newInstance(themeId)
 
     /** A style change can move key sizes and labels, so the board is rebuilt. */
     override fun reloadBoard() = reloadTheme()
+
+    override fun refreshCaption() = updateCaption()
 
     /** Colours are resolved while drawing, so the board only needs a repaint. */
     override fun applyScheme(schemeId: String) {

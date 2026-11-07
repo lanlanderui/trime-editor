@@ -22,6 +22,8 @@
       不出现，而且不报错。这两个包是输入法的 release / debug 应用 id。
     -->
     <queries>
+        <package android:name="com.osfans.trime" />
+        <package android:name="com.osfans.trime.debug" />
         <package android:name="com.osfans.trime03" />
         <package android:name="com.osfans.trime03.debug" />
     </queries>
@@ -44,6 +46,33 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.AppearanceActivity"
+            android:exported="false"
+            android:label="@string/appearance_title" />
+
+        <!--
+          给输入法按键调用：`command: run` 的 option 写
+          `com.osfans.trime.editor/.QuickApplyActivity`（或 .QuickSaveActivity）。
+          必须 exported：输入法用显式 ComponentName 跨应用启动。
+          无界面、不进最近任务，做完一句 toast 就 finish。
+        -->
+        <activity
+            android:name=".QuickApplyActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/quick_apply_label"
+            android:noHistory="true"
+            android:theme="@style/Theme.TrimeEditor.QuickAction" />
+
+        <activity
+            android:name=".QuickSaveActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/quick_save_label"
+            android:noHistory="true"
+            android:theme="@style/Theme.TrimeEditor.QuickAction" />
 
         <activity
             android:name=".ThemePreviewActivity"

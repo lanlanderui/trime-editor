@@ -16,7 +16,9 @@ import com.osfans.trime.data.theme.kbd.LayoutEngine
 import com.osfans.trime.data.theme.model.KeyActionToken
 import com.osfans.trime.data.theme.model.TextKeyboard
 import com.osfans.trime.data.theme.model.orAbsent
+import com.osfans.trime.editor.ui.R
 import com.osfans.trime.editor.ui.dp
+import com.osfans.trime.editor.ui.skin.UiTokens
 
 /**
  * Draws the row structure of one layout, sized to the width it is given.
@@ -43,17 +45,25 @@ constructor(
             invalidate()
         }
 
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFFFFF.toInt() }
+    // 缩略图是纸上的一个小示意，不是一块屏幕：底色用规则线、键面用纸色。
+    // 原来写死的是 Material 的浅灰白，在米白纸上会像贴了一张别的界面。
+    private val fill =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = UiTokens.color(context, R.attr.ui_sheet)
+        }
     private val stroke =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = context.dp(1).toFloat()
-            color = 0x22000000
+            color = UiTokens.color(context, R.attr.ui_rule_strong)
         }
-    private val back = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFE8EAED.toInt() }
+    private val back =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = UiTokens.color(context, R.attr.ui_paper)
+        }
     private val label =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF3C4043.toInt()
+            color = UiTokens.color(context, R.attr.ui_ink_2)
             textAlign = Paint.Align.CENTER
         }
     private val rect = RectF()

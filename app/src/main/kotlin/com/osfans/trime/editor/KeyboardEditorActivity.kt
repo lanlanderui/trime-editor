@@ -8,6 +8,8 @@ package com.osfans.trime.editor
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
@@ -15,6 +17,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -22,8 +25,8 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.AttrRes
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ColorManager
@@ -38,14 +41,18 @@ import com.osfans.trime.data.theme.kbd.RawKeyboard
 import com.osfans.trime.data.theme.kbd.ThemeKeyboardReader
 import com.osfans.trime.data.theme.kbd.ThemeKeyboardWriter
 import com.osfans.trime.editor.databinding.ActivityKeyboardEditorBinding
+import com.osfans.trime.editor.ui.EditorActivity
 import com.osfans.trime.editor.ui.kbd.KeyboardCanvasView
 import com.osfans.trime.editor.ui.preview.PreviewChrome
+import com.osfans.trime.editor.ui.skin.UiMode
+import com.osfans.trime.editor.ui.skin.UiTokens
 import com.osfans.trime.ime.keyboard.Keyboard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.roundToInt
+import com.osfans.trime.editor.ui.R as UiR
 
 /**
  * One layout on a canvas, with the key under the finger described below it.
@@ -59,7 +66,7 @@ import kotlin.math.roundToInt
  * disclosure: a key's whole meaning is its bindings, and an editor that hides
  * five of them is an editor where the sixth is never found.
  */
-class KeyboardEditorActivity : AppCompatActivity() {
+class KeyboardEditorActivity : EditorActivity() {
     private lateinit var binding: ActivityKeyboardEditorBinding
     private lateinit var canvas: KeyboardCanvasView
     private lateinit var chrome: PreviewChrome
@@ -87,8 +94,8 @@ class KeyboardEditorActivity : AppCompatActivity() {
     private lateinit var labelField: EditText
     private lateinit var widthField: EditText
     private lateinit var widthSlider: SeekBar
-    private lateinit var widthMinus: Button
-    private lateinit var widthPlus: Button
+    private lateinit var widthMinus: TextView
+    private lateinit var widthPlus: TextView
     private lateinit var popupValue: TextView
     private lateinit var actionFields: List<Pair<ActionSlot, EditText>>
     private lateinit var statusText: TextView
@@ -96,6 +103,13 @@ class KeyboardEditorActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityKeyboardEditorBinding.inflate(layoutInflater)
+        // 舞台皮肤没有顶栏：返回/保存在舞台的胶囊上（设计稿 B3-02）。
+        if (UiMode.caps.stageHeader) {
+            binding.toolbar.visibility = View.GONE
+            binding.stageChips.visibility = View.VISIBLE
+            binding.stageBack.setOnClickListener { finish() }
+            binding.stageSave.setOnClickListener { save() }
+        }
         setContentView(binding.root)
         binding.root.applySystemBarInsets()
         setSupportActionBar(binding.toolbar)
@@ -136,6 +150,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.keyboard_editor, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -146,6 +161,7 @@ class KeyboardEditorActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, themeId, themeName)) return true
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
@@ -321,21 +337,39 @@ class KeyboardEditorActivity : AppCompatActivity() {
         val d = draft ?: return
         val spacers = (0 until d.size).count { !d.producesKey(it) }
         statusText.text = getString(R.string.kbd_editor_status, d.size, spacers, selected?.plus(1) ?: 0)
-        binding.undoButton.isEnabled = history.canUndo
-        binding.redoButton.isEnabled = history.canRedo
-        binding.deleteButton.isEnabled = d.size > 1 && selected != null
-        binding.leftButton.isEnabled = selected != null
-        binding.rightButton.isEnabled = selected != null
+        // dock 是自绘的胶囊项，没有 Button 自带的禁用态：用透明度表达「按不了」。
+        dockState(binding.undoButton, history.canUndo)
+        dockState(binding.redoButton, history.canRedo)
+        dockState(binding.deleteButton, d.size > 1 && selected != null)
+        dockState(binding.leftButton, selected != null)
+        dockState(binding.rightButton, selected != null)
+    }
+
+    private fun dockState(
+        item: View,
+        enabled: Boolean,
+    ) {
+        item.isEnabled = enabled
+        item.alpha = if (enabled) 1f else 0.38f
     }
 
     // -------------------------------------------------------------- inspector
 
+    /**
+     * 滚动区里的三档卡片（设计稿 B3-05/06/07）。
+     *
+     * 一屏只描述「当前选中的那个键」：大卡给文字，宽度卡给滑杆，半卡给六个
+     * 动作槽。三档的圆角不同（26 / 22 / 卡片 28）是稿子的语言——层级靠形状
+     * 拉开，不靠描边和阴影。
+     */
     private fun buildInspector() {
         val scroll = ScrollView(this)
         val column =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(dp(20), dp(8), dp(20), dp(24))
+                // B3-09：dock 高 56 + 距底 16，内容尾部留 96，
+                // 滚到底最后一张卡也露得全。
+                setPadding(dp(14), dp(4), dp(14), dp(96))
             }
         scroll.addView(column)
         binding.inspectorHost.addView(
@@ -343,55 +377,82 @@ class KeyboardEditorActivity : AppCompatActivity() {
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
         )
 
-        statusText = TextView(this).apply {
-            textSize = 12f
-            setPadding(0, dp(4), 0, dp(8))
-        }
-        column.addView(statusText)
+        // B3-04 的键数读数在舞台上（布局里的 stageStatus），不跟着滚动走。
+        statusText = binding.stageStatus
 
-        labelField = addField(column, getString(R.string.kbd_field_label)) { value ->
-            mutate(coalesce = "label") { d, index -> d.setLabel(index, value) }
-        }
-        widthField =
-            addField(column, getString(R.string.kbd_field_width), numeric = true) { value ->
-                value.toFloatOrNull()?.let { weight ->
-                    mutate(coalesce = "width") { d, index -> d.setWidth(index, weight) }
+        labelField =
+            addBigField(column, getString(R.string.kbd_field_label)) { value ->
+                mutate(coalesce = "label") { d, index ->
+                    // 没钉过 label 的键，卡上显示的是 click 的名字（键面上画的也是它）。
+                    // 照着它原样提交等于把「兜底」钉成字面量——文件里会多一行 label，
+                    // 而用户什么都没改。所以原样提交算没改。
+                    val pinned = d.key(index).label
+                    if (pinned.isEmpty() && value == d.action(index, ActionSlot.CLICK).orEmpty()) return@mutate
+                    d.setLabel(index, value)
                 }
             }
-        addWidthStepper(column)
-        addPopupRow(column)
+        addWidthCard(column)
 
-        actionFields = ActionSlot.entries.filter { it.isPrimary }.map { slot ->
-            slot to addField(column, getString(slot.titleRes())) { value ->
-                mutate(coalesce = "action-${slot.yaml}") { d, index ->
-                    d.setAction(index, slot, value.ifBlank { null })
+        // 六个动作槽两两一张半卡：稿子画了单击/长按两张，后四个滑动槽沿用同一
+        // 档卡片语言，功能一个不少（见 addHalfCards 的注释）。
+        val fields = mutableListOf<Pair<ActionSlot, EditText>>()
+        ActionSlot.entries.filter { it.isPrimary }.chunked(2).forEach { pair ->
+            fields +=
+                addHalfCards(column, pair) { slot, value ->
+                    mutate(coalesce = "action-${slot.yaml}") { d, index ->
+                        d.setAction(index, slot, value.ifBlank { null })
+                    }
                 }
-            }
         }
+        actionFields = fields
+        addPopupCard(column)
     }
 
-    private fun addField(
+    /** 卡片之间统一的上边距：一屏的卡片是「叠起来的块」，间距靠它。 */
+    private fun topMargin(value: Int): LinearLayout.LayoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        .apply { topMargin = value }
+
+    /** 一张 B3 卡片：底色 + 一档圆角 + 1dp 描边，里面摆什么由调用方决定。 */
+    private fun cardView(@AttrRes radiusAttr: Int): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        background = UiTokens.rounded(this@KeyboardEditorActivity, radiusAttr)
+    }
+
+    /** 字段标签：小字、无衬线 medium、宽字距（稿子的 .lb，muted 色）。 */
+    private fun fieldTitle(
+        text: String,
+        sizeSp: Float = 9f,
+        spacing: Float = 0.08f,
+    ): TextView = TextView(this).apply {
+        this.text = text
+        textSize = sizeSp
+        letterSpacing = spacing
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        setTextColor(UiTokens.color(this@KeyboardEditorActivity, UiR.attr.ui_muted))
+    }
+
+    /**
+     * B3-05 文字大卡：标题 + 30sp 的值 + 右上 44dp 主色圆钮（✎）。
+     *
+     * ✎ 不是装饰：它是「专心改这一项」的入口——点它聚焦输入框并抬起软键盘，
+     * 免得用户在 30sp 的大字上找光标。值直接摆在卡片上（不要输入框的底），
+     * 卡片就是它的底。
+     */
+    private fun addBigField(
         parent: LinearLayout,
         title: String,
-        numeric: Boolean = false,
         onCommit: (String) -> Unit,
     ): EditText {
-        parent.addView(
-            TextView(this).apply {
-                text = title
-                textSize = 12f
-                setPadding(0, dp(10), 0, dp(2))
-                setTextColor(ContextCompat.getColor(this@KeyboardEditorActivity, R.color.chip_text))
-            },
-        )
         val field =
             EditText(this).apply {
                 background = null
-                setPadding(0, dp(6), 0, dp(6))
-                setTextSize(16f)
-                inputType = if (numeric) InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL else InputType.TYPE_CLASS_TEXT
-                imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+                setTextSize(30f)
+                letterSpacing = -0.02f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                setTextColor(UiTokens.color(this@KeyboardEditorActivity, UiR.attr.ui_ink))
+                setPadding(0, dp(4), 0, 0)
                 setSingleLine(true)
+                imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
                 setOnEditorActionListener { view, _, _ ->
                     commitField(view as EditText, onCommit)
                     true
@@ -400,36 +461,82 @@ class KeyboardEditorActivity : AppCompatActivity() {
                     if (!hasFocus && view is EditText) commitField(view, onCommit)
                 }
             }
-        parent.addView(field, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val head =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+        head.addView(
+            fieldTitle(title, sizeSp = 10f),
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        head.addView(
+            roundButton(
+                glyph = "✎",
+                description = getString(R.string.kbd_field_label),
+                glyphSp = 17f,
+                fillAttr = UiR.attr.ui_primary_container,
+                textAttr = UiR.attr.ui_on_primary_container,
+            ) {
+                field.requestFocus()
+                (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)?.showSoftInput(field, 0)
+            },
+            LinearLayout.LayoutParams(dp(44), dp(44)),
+        )
+        val card =
+            cardView(UiR.attr.ui_radius_field).apply {
+                layoutParams = topMargin(dp(10))
+                setPadding(dp(20), dp(16), dp(20), dp(16))
+            }
+        card.addView(head)
+        card.addView(field)
+        parent.addView(card)
         return field
     }
 
-    private fun commitField(
-        field: EditText,
-        onCommit: (String) -> Unit,
-    ) {
-        if (bindingFields) return
-        onCommit(field.text.toString().trim())
-    }
-
     /**
-     * 宽度的三个入口：滑杆扫、加减键微调、上面的输入框给准数。
+     * B3-06 宽度卡：标题一行，下面 − 圆钮 / 17sp 数字 + 4dp 滑杆 / ＋ 圆钮。
      *
-     * 三者改的是同一个 weight，所以谁在前台都不会和数据打架。滑杆拖动时只调
-     * [previewWidth]（不记历史），松手才 [commitWidth] 记一条；加减键走
-     * [mutate] 并按 `width` 合并。于是一次调宽在撤销栈里占一格，而不是几十格。
+     * 滑杆是自绘的 4dp 轨道（bg_slider_track）：默认样式是一条粗棒，和这屏的
+     * 细字阶不搭。拖动只预览不记历史，松手才记一条（见 preview/commitWidth）。
      */
-    private fun addWidthStepper(parent: LinearLayout) {
-        widthMinus =
-            stepButton("−", getString(R.string.kbd_width_decrease)) {
-                nudgeWidth(-WIDTH_STEP)
+    private fun addWidthCard(parent: LinearLayout) {
+        val card =
+            cardView(UiR.attr.ui_radius_field).apply {
+                layoutParams = topMargin(dp(10))
+                setPadding(dp(16), dp(12), dp(16), dp(12))
             }
-        widthPlus =
-            stepButton("+", getString(R.string.kbd_width_increase)) {
-                nudgeWidth(WIDTH_STEP)
+        card.addView(fieldTitle(getString(R.string.kbd_field_width), sizeSp = 9f, spacing = 0.1f))
+
+        val commit: (String) -> Unit = { value ->
+            value.toFloatOrNull()?.let { weight ->
+                mutate(coalesce = "width") { d, index -> d.setWidth(index, weight) }
+            }
+        }
+        widthField =
+            EditText(this).apply {
+                background = null
+                setTextSize(17f)
+                gravity = Gravity.CENTER
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                setTextColor(UiTokens.color(this@KeyboardEditorActivity, UiR.attr.ui_ink))
+                inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+                imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+                setSingleLine(true)
+                setOnEditorActionListener { view, _, _ ->
+                    commitField(view as EditText, commit)
+                    true
+                }
+                setOnFocusChangeListener { view, hasFocus ->
+                    if (!hasFocus && view is EditText) commitField(view, commit)
+                }
             }
         widthSlider =
             SeekBar(this).apply {
+                progressDrawable = ContextCompat.getDrawable(context, UiR.drawable.bg_slider_track)
+                thumb = ContextCompat.getDrawable(context, UiR.drawable.bg_slider_thumb)
+                splitTrack = false
+                minimumHeight = 0
                 max = WIDTH_SLIDER_SPAN
                 setOnSeekBarChangeListener(
                     object : SeekBar.OnSeekBarChangeListener {
@@ -453,16 +560,139 @@ class KeyboardEditorActivity : AppCompatActivity() {
                     },
                 )
             }
+        widthMinus =
+            roundButton(
+                glyph = "−",
+                description = getString(R.string.kbd_width_decrease),
+                glyphSp = 18f,
+                fillAttr = UiR.attr.ui_card_high,
+                textAttr = UiR.attr.ui_ink,
+            ) { nudgeWidth(-WIDTH_STEP) }
+        widthPlus =
+            roundButton(
+                glyph = "＋",
+                description = getString(R.string.kbd_width_increase),
+                glyphSp = 18f,
+                fillAttr = UiR.attr.ui_card_high,
+                textAttr = UiR.attr.ui_ink,
+            ) { nudgeWidth(WIDTH_STEP) }
+
         val row =
             LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, dp(4), 0, dp(4))
+                setPadding(0, dp(8), 0, 0)
             }
-        row.addView(widthMinus, LinearLayout.LayoutParams(dp(48), dp(44)))
-        row.addView(widthSlider, LinearLayout.LayoutParams(0, dp(44), 1f))
-        row.addView(widthPlus, LinearLayout.LayoutParams(dp(48), dp(44)))
+        row.addView(widthMinus, LinearLayout.LayoutParams(dp(36), dp(36)))
+        val mid =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+            }
+        mid.addView(
+            widthField,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT),
+        )
+        mid.addView(
+            widthSlider,
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                .apply { topMargin = dp(8) },
+        )
+        row.addView(mid, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(widthPlus, LinearLayout.LayoutParams(dp(36), dp(36)))
+        card.addView(row)
+        parent.addView(card)
+    }
+
+    /**
+     * 圆钮：✎ 用主色容器底，−/＋ 用卡片色底——稿子里两种圆钮的底色不同
+     * （pcontainer / scontainer），文字色跟着底色走，都是整圆。
+     *
+     * [description] 给读屏用：字形本身（−、✎）念不出来是什么。
+     */
+    private fun roundButton(
+        glyph: String,
+        description: String,
+        glyphSp: Float,
+        @AttrRes fillAttr: Int,
+        @AttrRes textAttr: Int,
+        onClick: () -> Unit,
+    ): TextView = TextView(this).apply {
+        text = glyph
+        textSize = glyphSp
+        gravity = Gravity.CENTER
+        contentDescription = description
+        setTextColor(UiTokens.color(this@KeyboardEditorActivity, textAttr))
+        background =
+            GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(UiTokens.color(this@KeyboardEditorActivity, fillAttr))
+            }
+        isClickable = true
+        isFocusable = true
+        setOnClickListener { onClick() }
+    }
+
+    /**
+     * B3-07 半卡：两张并排（单击/长按、上滑/下滑、左滑/右滑）。
+     *
+     * 稿子只画了前两张——编辑器的六个动作槽都要能改，后四个滑动槽沿用同一档
+     * 卡片（圆角 22、标题 9sp、值 15sp/600 等宽），不引入第三种字段样式。
+     */
+    private fun addHalfCards(
+        parent: LinearLayout,
+        slots: List<ActionSlot>,
+        onCommit: (ActionSlot, String) -> Unit,
+    ): List<Pair<ActionSlot, EditText>> {
+        val row =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = topMargin(dp(10))
+            }
+        val out = mutableListOf<Pair<ActionSlot, EditText>>()
+        slots.forEachIndexed { i, slot ->
+            val field =
+                EditText(this).apply {
+                    background = null
+                    setTextSize(15f)
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    setTextColor(UiTokens.color(this@KeyboardEditorActivity, UiR.attr.ui_ink))
+                    setPadding(0, dp(4), 0, 0)
+                    setSingleLine(true)
+                    imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+                    setOnEditorActionListener { view, _, _ ->
+                        commitField(view as EditText) { value -> onCommit(slot, value) }
+                        true
+                    }
+                    setOnFocusChangeListener { view, hasFocus ->
+                        if (!hasFocus && view is EditText) commitField(view) { value -> onCommit(slot, value) }
+                    }
+                }
+            val card =
+                cardView(UiR.attr.ui_radius_half).apply {
+                    setPadding(dp(14), dp(12), dp(14), dp(12))
+                }
+            card.addView(fieldTitle(getString(slot.titleRes())))
+            card.addView(field)
+            row.addView(
+                card,
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    // 两张之间留 10dp：一边 5dp，比在中间塞 Space 省一次测量。
+                    if (i == 0) marginEnd = dp(5) else marginStart = dp(5)
+                },
+            )
+            out += slot to field
+        }
         parent.addView(row)
+        return out
+    }
+
+    private fun commitField(
+        field: EditText,
+        onCommit: (String) -> Unit,
+    ) {
+        if (bindingFields) return
+        onCommit(field.text.toString().trim())
     }
 
     private fun stepButton(
@@ -480,30 +710,31 @@ class KeyboardEditorActivity : AppCompatActivity() {
     }
 
     /**
-     * 长按弹出的选项（`popup:`）：一行看得见的列表，点开逐项编辑。
+     * 长按弹出（popup）：一张满宽卡，点值打开逐项编辑的对话框。
      *
-     * 用对话框而不是「逗号分隔的输入框」：token 里本来就可能有逗号或空格
-     * （`，`、`space`、`Return`），靠分隔符切迟早切错。
+     * 不用输入框：token 里可能有逗号或空格（`，`、`space`、`Return`），
+     * 靠分隔符切迟早切错（理由见 editPopup）。
      */
-    private fun addPopupRow(parent: LinearLayout) {
-        parent.addView(
-            TextView(this).apply {
-                text = getString(R.string.kbd_field_popup)
-                textSize = 12f
-                setPadding(0, dp(10), 0, dp(2))
-                setTextColor(ContextCompat.getColor(this@KeyboardEditorActivity, R.color.chip_text))
-            },
-        )
-        popupValue =
-            TextView(this).apply {
-                textSize = 16f
-                setPadding(0, dp(6), 0, dp(6))
+    private fun addPopupCard(parent: LinearLayout) {
+        val card =
+            cardView(UiR.attr.ui_radius_field).apply {
+                layoutParams = topMargin(dp(10))
+                setPadding(dp(16), dp(12), dp(16), dp(12))
                 setOnClickListener { editPopup() }
             }
-        parent.addView(
-            popupValue,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
-        )
+        card.addView(fieldTitle(getString(R.string.kbd_field_popup)))
+        popupValue =
+            TextView(this).apply {
+                textSize = 15f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                setTextColor(UiTokens.color(this@KeyboardEditorActivity, UiR.attr.ui_ink))
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(0, dp(4), 0, 0)
+                setOnClickListener { editPopup() }
+            }
+        card.addView(popupValue)
+        parent.addView(card)
     }
 
     /** 逐项编辑 `popup`：一行一个 token，可以加、可以删。 */
@@ -596,7 +827,9 @@ class KeyboardEditorActivity : AppCompatActivity() {
         popupValue.isEnabled = enabled
         actionFields.forEach { (_, field) -> field.isEnabled = enabled }
         if (d != null && index != null) {
-            labelField.setText(d.key(index).label)
+            // 大卡显示「键面上画的字」：钉了 label 就显示 label，没钉就显示 click
+            // 的名字（兜底值）。commit 那一侧有守卫，照兜底值原样提交不算改。
+            labelField.setText(d.key(index).label.ifEmpty { d.action(index, ActionSlot.CLICK).orEmpty() })
             val weight = d.effectiveWidth(index)
             widthField.setText(formatWeight(weight))
             syncWidthSlider(weight)

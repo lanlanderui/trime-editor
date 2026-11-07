@@ -53,10 +53,39 @@
             android:exported="true"
             tools:replace="android:exported" />
 
+        <!-- 外观页：脚本化验收要能直接拉起它，否则只能靠坐标点菜单。 -->
+        <activity
+            android:name=".ui.AppearanceActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+
         <!-- 打开就崩，用来验「崩溃日志落盘 + 下次启动提示」。只在调试包。 -->
         <activity
             android:name=".CrashProbeActivity"
             android:exported="true" />
+
+        <!-- 设计地基的样张页：四种行 + 章节头，拿真机截图跟规格书逐项对。 -->
+        <activity
+            android:name=".ProofSampleActivity"
+            android:exported="true" />
+        <!--
+          调试包专用：applicationId 多了 .debug，`pkg/.QuickApplyActivity` 会展开到
+          com.osfans.trime.editor.debug 下找类。这两个别名让同一份主题的 option
+          在 release / debug 上都能启动（见 QuickEntryAliases.kt）。
+        -->
+        <activity
+            android:name=".debug.QuickApplyActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.TrimeEditor.QuickAction" />
+
+        <activity
+            android:name=".debug.QuickSaveActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.TrimeEditor.QuickAction" />
     </application>
 
 </manifest>

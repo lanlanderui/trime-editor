@@ -6,7 +6,6 @@
 package com.osfans.trime.editor.ui.preview
 
 import android.view.ViewGroup
-import androidx.core.view.doOnLayout
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.ThemeLoader
@@ -48,13 +47,17 @@ class ThemeBoard private constructor(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
-        // The keyboard is built from the width the board actually got, which is
-        // only known after layout. It is posted rather than run inline: setting
-        // the keyboard calls requestLayout(), and a request made during a layout
-        // pass is dropped — the board then keeps its fallback height and clips
-        // its bottom row.
-        view.doOnLayout { laid ->
-            val measured = laid.width
+        // The keyboard is built from the width the board actually got. That width
+        // can change after the first layout — the editor grows a directory rail
+        // when the theme loads, rotation re-lays everything out, split screen
+        // resizes the page — and a board built for the old width draws past its
+        // right edge. So this listens for every layout change, not just the first.
+        //
+        // The build is posted rather than run inline: setting the keyboard calls
+        // requestLayout(), and a request made during a layout pass is dropped —
+        // the board then keeps its fallback height and clips its bottom row.
+        view.addOnLayoutChangeListener { laid, _, _, right, _, _, _, _, _ ->
+            val measured = right - laid.left
             if (measured > 0 && measured != width) laid.post { build(measured) }
         }
     }

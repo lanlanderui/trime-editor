@@ -7,14 +7,14 @@ package com.osfans.trime.editor
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
@@ -22,9 +22,12 @@ import com.osfans.trime.data.theme.ThemeDiagnostics
 import com.osfans.trime.data.theme.ThemeLoader.ThemeLoadError
 import com.osfans.trime.data.theme.ThemeLoader.ThemeLoadResult
 import com.osfans.trime.editor.databinding.ActivityThemePreviewBinding
+import com.osfans.trime.editor.ui.EditorActivity
 import com.osfans.trime.editor.ui.preview.ThemeBoard
+import com.osfans.trime.editor.ui.skin.UiTokens
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.osfans.trime.editor.ui.R as UiR
 
 /**
  * A theme, drawn by the same code the keyboard uses.
@@ -38,7 +41,7 @@ import timber.log.Timber
  * scope, and every `Key` resolves its colours through it. So the screen attaches
  * the theme first and rebuilds on every scheme change.
  */
-class ThemePreviewActivity : AppCompatActivity() {
+class ThemePreviewActivity : EditorActivity() {
     private lateinit var binding: ActivityThemePreviewBinding
     private lateinit var board: ThemeBoard
 
@@ -70,6 +73,7 @@ class ThemePreviewActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.preview, menu)
+        OutlineMenu.addTo(menu, this)
         return true
     }
 
@@ -88,6 +92,7 @@ class ThemePreviewActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (OutlineMenu.handle(this, item, themeId, themeName)) return true
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
@@ -154,7 +159,8 @@ class ThemePreviewActivity : AppCompatActivity() {
         hasLoaded = true
         binding.boardHost.visibility = View.VISIBLE
         buildSchemeChips(loaded)
-        binding.detail.text = findingsSummary(success.findings)
+        showFindings(success.findings)
+        showInfo(loaded)
         invalidateOptionsMenu()
     }
 
@@ -166,10 +172,20 @@ class ThemePreviewActivity : AppCompatActivity() {
         hasLoaded = false
         binding.boardHost.visibility = View.GONE
         binding.schemeBar.visibility = View.GONE
+        binding.diagBox.visibility = View.GONE
+        binding.detail.visibility = View.VISIBLE
         binding.detail.text = buildString {
             append(getString(R.string.preview_load_failed))
             append("\n\n")
-            append(error.message.orEmpty())
+            // 「文件不在」是用户自己能解决的一件事（换主题 / 把文件拷过来），
+            // 所以用中文说清楚该去看什么；其它错误保留加载器原话，方便贴出来查。
+            append(
+                if (error is ThemeLoadError.SourceNotFound) {
+                    getString(R.string.preview_source_missing, "$themeId.yaml")
+                } else {
+                    error.message.orEmpty()
+                },
+            )
         }
         invalidateOptionsMenu()
     }
@@ -199,8 +215,9 @@ class ThemePreviewActivity : AppCompatActivity() {
         val chip =
             TextView(this).apply {
                 text = label
-                textSize = 13f
-                setPadding(dp(14), dp(6), dp(14), dp(6))
+                textSize = 11f
+                typeface = Typeface.MONOSPACE
+                setPadding(dp(11), dp(5), dp(11), dp(5))
                 setOnClickListener {
                     if (followSystem) {
                         EditorPrefs.followSystemDayNight = true
@@ -216,6 +233,8 @@ class ThemePreviewActivity : AppCompatActivity() {
                     board.refresh()
                 }
                 tag = if (followSystem) FOLLOW_SYSTEM_TAG else label
+                background = chipBackground(selected = false)
+                setTextColor(UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_ink_2))
             }
         val params =
             LinearLayout.LayoutParams(
@@ -247,23 +266,113 @@ class ThemePreviewActivity : AppCompatActivity() {
                 } else {
                     !following && view.tag == activeId
                 }
-            view.setBackgroundResource(if (selected) R.drawable.bg_chip_selected else R.drawable.bg_chip)
-            view.setTextColor(ContextCompat.getColor(this, if (selected) R.color.chip_text_selected else R.color.chip_text))
+            view.background = chipBackground(selected)
+            view.setTextColor(
+                UiTokens.color(
+                    this,
+                    if (selected) UiR.attr.ui_paper else UiR.attr.ui_ink_2,
+                ),
+            )
         }
     }
 
     /**
-     * One line, not the whole report.
+     * 这份主题的规模：四行，全是已经读进内存的数字。
      *
-     * The findings are a list of places to go — dumping twelve of them into a
-     * text block under the keyboard makes the page look broken and still leaves
-     * the reader unable to act. The list lives on its own screen; this says how
-     * many there are.
+     * 不写「作者」：主题级没有这个字段（只有每个键盘自己有 `author`），
+     * 硬凑一个出来就是编。也不写行数——那要把 200KB 再数一遍。
      */
-    private fun findingsSummary(findings: List<ThemeDiagnostics.Finding>?): String {
-        if (findings == null) return getString(R.string.preview_findings_unknown)
-        if (findings.isEmpty()) return getString(R.string.preview_findings_clean)
-        return getString(R.string.preview_findings_short, findings.size)
+    private fun showInfo(theme: Theme) {
+        val box = binding.infoBlock
+        box.removeAllViews()
+        box.visibility = View.VISIBLE
+
+        val header = layoutInflater.inflate(UiR.layout.pref_proof_chapter, box, false)
+        header.findViewById<TextView>(UiR.id.proofChapterTitle).text = getString(R.string.preview_info_title)
+        header.findViewById<TextView>(UiR.id.proofChapterExtra).visibility = View.GONE
+        box.addView(header)
+
+        fun row(
+            label: String,
+            key: String,
+            value: String,
+        ) {
+            val view = layoutInflater.inflate(UiR.layout.pref_proof_value, box, false)
+            view.findViewById<TextView>(UiR.id.proofName).text = label
+            view.findViewById<TextView>(UiR.id.proofKey).text = key
+            view.findViewById<TextView>(UiR.id.proofValue).text = value
+            box.addView(view)
+        }
+
+        row(
+            getString(R.string.preview_info_schemes),
+            "preset_color_schemes",
+            getString(R.string.preview_info_count, theme.presetColorSchemes.size),
+        )
+        row(
+            getString(R.string.preview_info_keyboards),
+            "preset_keyboards",
+            getString(R.string.preview_info_count, theme.presetKeyboards.size),
+        )
+        row(
+            getString(R.string.preview_info_keys),
+            "preset_keys",
+            getString(R.string.preview_info_count, theme.presetKeys.size),
+        )
+        row(
+            getString(R.string.preview_info_pairs),
+            "dark_scheme",
+            getString(
+                R.string.preview_info_count,
+                theme.presetColorSchemes.count { it.value.containsKey("dark_scheme") },
+            ),
+        )
+    }
+
+    /**
+     * 诊断在预览页只占一块：一个数、一句话、一个入口。
+     *
+     * 没运行过静态检查时退回一行字——「未运行」和「0 处」是两件事，不能都画成 0。
+     */
+    private fun showFindings(findings: List<ThemeDiagnostics.Finding>?) {
+        if (findings == null) {
+            binding.diagBox.visibility = View.GONE
+            binding.detail.visibility = View.VISIBLE
+            binding.detail.text = getString(R.string.preview_findings_unknown)
+            return
+        }
+        val clean = findings.isEmpty()
+        binding.diagBox.visibility = View.VISIBLE
+        binding.detail.visibility = View.GONE
+        binding.diagCount.text = findings.size.toString()
+        binding.diagLabel.text =
+            getString(
+                if (clean) R.string.preview_findings_clean_label else R.string.preview_findings_count_label,
+            )
+        binding.diagCount.setTextColor(
+            UiTokens.color(
+                this,
+                if (clean) UiR.attr.ui_ink_2 else UiR.attr.ui_accent,
+            ),
+        )
+        binding.diagGo.visibility = if (clean) View.GONE else View.VISIBLE
+        binding.diagGo.setOnClickListener {
+            startActivity(DiagnosticsActivity.intent(this, themeId, themeName))
+        }
+    }
+
+    /** 选中的方案是一块实心墨，其余是描边——和工具条那排按钮同一种语言。 */
+    private fun chipBackground(selected: Boolean): GradientDrawable = GradientDrawable().apply {
+        cornerRadius = dp(4).toFloat()
+        if (selected) {
+            setColor(UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_ink))
+        } else {
+            setColor(0)
+            setStroke(
+                dp(1),
+                UiTokens.color(this@ThemePreviewActivity, UiR.attr.ui_rule_strong),
+            )
+        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
