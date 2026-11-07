@@ -116,7 +116,7 @@
                         android:textColor="?attr/ui_muted"
                         android:textSize="10sp" />
 
-                    <com.osfans.trime.editor.workbench.SwatchStripView
+                    <com.trime.editor.workbench.SwatchStripView
                         android:id="@+id/heroSwatches"
                         android:layout_width="match_parent"
                         android:layout_height="34dp"

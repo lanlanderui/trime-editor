@@ -21,7 +21,7 @@
         android:paddingEnd="14dp"
         android:paddingBottom="14dp">
 
-        <com.osfans.trime.editor.ui.kbd.KeyboardThumbView
+        <com.trime.editor.ui.kbd.KeyboardThumbView
             android:id="@+id/thumb"
             android:layout_width="match_parent"
             android:layout_height="96dp" />

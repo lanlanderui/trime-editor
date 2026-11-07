@@ -30,7 +30,7 @@
         android:layout_weight="1"
         android:orientation="horizontal">
 
-        <com.osfans.trime.editor.ui.proof.OutlineRail
+        <com.trime.editor.ui.proof.OutlineRail
             android:id="@+id/outline"
             android:layout_width="@dimen/ui_rail_w"
             android:layout_height="match_parent"

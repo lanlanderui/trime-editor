@@ -193,3 +193,48 @@ F6 六项（全量截图、对比度、G-05、性能、旧皮肤不回归、0.4.
 连续抓到黑屏（锁屏界面 / 灭屏），无法拍 chips 与示意条的改后图。改动都是
 纯样式与菜单精简、编译与门禁全过，风险低；平板解锁后补两张图即可。
 设备 `screen_off_timeout` 试改过一次，已还原为 300000。
+
+## 12. 正式版 0.4.0 发布 + 包名改为 `com.trime.editor`（23:2x）
+
+**起因**：用户在原版同文输入法里配了两个按键：
+
+```yaml
+DynamicColor:     { command: run, label: 更新配色, option: "com.osfans.trime.editor/.QuickApplyActivity" }
+SaveDynamicColor: { command: run, label: 收藏配色, option: "com.osfans.trime.editor/.QuickSaveActivity" }
+```
+
+输入法报错。排查结果：原版输入法用 `ComponentName.unflattenFromString` 展开
+`包名/.类名`（见 `trime3/app/src/main/java/com/osfans/trime/util/Intent.kt`），
+**写法本身没错**；当时设备只装了调试包 `com.osfans.trime.editor.debug`，
+没有 `com.osfans.trime.editor`，`cmd package resolve-activity` 直接
+`No activity found`。
+
+用户随后指出包名归属不对：`osfans` 是原版同文输入法作者的标识，编辑器是
+他主导 AI 创作的独立作品。趁正式版刚发、无存量用户，一次性改掉：
+
+- `applicationId` / `namespace`：`com.osfans.trime.editor` → **`com.trime.editor`**，
+  `editor-ui` 的 namespace 同步为 `com.trime.editor.ui`；debug 后缀仍是 `.debug`。
+- 五个源码目录整体 `git mv` 到新包路径，124 个文本文件的 package / import /
+  R 类 / ViewBinding / 文档 / 清单注释全局替换；仓库内残留 **0 处**。
+- **保留** `com.osfans.trime.data.theme.*` / `com.osfans.trime.ime.*` /
+  `com.osfans.trime.theme.*` —— 那是从上游抽出来的库代码，留着才是正确的归属。
+- 同步改掉：主清单与 `QuickColorActivity` 注释里的 option 示例，README 的
+  「输入法按键快捷入口」新章节与版本配对表。
+
+**顺带修的首次体验**：`QuickColorActivity` 原来检测不到「所有文件访问」时
+只 toast 一句就 finish；现在直接跳系统授权页（应用页失败再退到全局页），
+按一下就能到位。新包首次仍需在系统设置里开一次这个权限——本 ROM 不允许
+adb 代授（`appops set` 被 `MANAGE_APP_OPS_MODES` 拦、`pm grant` 对非运行时
+权限无效），所以这一步必须由用户完成。标准 `/storage/emulated/0/rime` 目录
+会被 `ensureThemeDir()` 自动认出，不用先打开编辑器选目录。
+
+**正式版配置（新包名，用户需把两行 option 换成这个）**：
+
+```yaml
+DynamicColor:     { command: run, label: 更新配色, option: "com.trime.editor/.QuickApplyActivity" }
+SaveDynamicColor: { command: run, label: 收藏配色, option: "com.trime.editor/.QuickSaveActivity" }
+```
+
+调试包写法：`com.trime.editor.debug/.QuickApplyActivity` /
+`.QuickSaveActivity`（两份包可共存）。
+换包名等于换应用：旧包名正式包需卸载；签名仍是 `CN=Trime Editor`。

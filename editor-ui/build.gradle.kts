@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.osfans.trime.editor.ui"
+    namespace = "com.trime.editor.ui"
     compileSdk = 37
 
     defaultConfig {

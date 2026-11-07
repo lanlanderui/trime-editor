@@ -10,7 +10,7 @@
 
   它们只有 `<item>`，没有 parent 之外的继承关系（`Skin.Tonal` 的隐式父级是
   空壳 `Skin`），因为 overlay 的语义是「往当前主题上盖几项」，不是「换一套
-  主题」。谁把它们盖上去：`com.osfans.trime.editor.ui.skin.EditorActivity`，
+  主题」。谁把它们盖上去：`com.trime.editor.ui.skin.EditorActivity`，
   在 `super.onCreate` 之前用 `theme.applyStyle(...)`。
 
   颜色一律指向色板资源而不是写字面值：色板的暗色在 values-night 里是另一份，

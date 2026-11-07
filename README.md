@@ -56,6 +56,7 @@
 
 | 编辑器 | 配套输入法 | 说明 |
 |---|---|---|
+| 0.4.x | 原版同文输入法（`com.osfans.trime`） | 方向 B「舞台」皮肤；包名改为 `com.trime.editor` |
 | 0.3.x | 原版同文输入法（`com.osfans.trime`） | 只改界面，主题格式同 0.2.x |
 | 0.2.x | 原版同文输入法（`com.osfans.trime`） | 主题格式 `config_version: 3.0` |
 | 0.1.x | 同文输入法03 `appearance-03-my2`（`com.osfans.trime03`） | 已不再推进，仅保留兼容 |
@@ -63,6 +64,30 @@
 「回到输入法」认识这四个包（原版 / 原版调试 / 03 / 03 调试），**原版优先**：装了原版就打开原版，只装了 03 的设备仍能打开 03。选包走系统的已启用输入法列表，系统默认输入法优先于列表顺序。
 
 输入法侧的复核（`.revision` + 内容哈希）从 `com.osfans.trime03` 的 D5 版本开始才有；更早的输入法不会自动重载，改完需要切换一下键盘或重启输入法。编辑器写出的 `.revision` 只是给输入法看的一行计数，删除无害。
+
+## 输入法按键快捷入口
+
+编辑器包名是 **`com.trime.editor`**（调试包 `com.trime.editor.debug`）。在输入法主题里给按键写 `command: run`，`option` 用 `包名/.类名`：
+
+```yaml
+DynamicColor:
+  command: run
+  label: "更新配色"
+  option: "com.trime.editor/.QuickApplyActivity"    # 按壁纸重算明暗两套配色
+SaveDynamicColor:
+  command: run
+  label: "收藏配色"
+  option: "com.trime.editor/.QuickSaveActivity"     # 把当前配色存进收藏
+```
+
+- 原版同文输入法用 `ComponentName.unflattenFromString` 展开 `包名/.类名`，
+  所以要写**完整包名**。装的是调试包就把两段里的 `com.trime.editor` 换成
+  `com.trime.editor.debug`；两个包能共存，配置指向哪份就由哪份执行。
+- 入口没有界面，做完只留一句 toast。`option` 带不了 extra，主题文件按
+  「显式 `theme_id` → 上次编辑的主题 → 标准 rime 目录第一份」依次找。
+- **首次使用**：Android 11+ 要给编辑器开「所有文件访问」。没授权时按一下会
+  直接跳到系统授权页，开完再按一次即可；标准 `/storage/emulated/0/rime`
+  目录里有主题时会自动认出来，不必先打开编辑器选目录。
 
 ## 构建
 
@@ -76,6 +101,12 @@ export JAVA_HOME=/path/to/jdk21      # AGP 8.x / Kotlin 2.x 需要 JDK 21
 ```bash
 ./gradlew distApk                    # 产物 dist/同文编辑器-<版本>.apk
 ```
+
+发布包的 applicationId 是 `com.trime.editor`，调试包多一个 `.debug` 后缀，
+两份可以同时安装。**0.4.0 起不再沿用上游的 `com.osfans.trime.editor`**：
+`osfans` 是原版同文输入法作者的标识，编辑器是独立作品；从上游抽出来的库
+代码仍保留 `com.osfans.trime.data.theme` / `com.osfans.trime.ime` 的归属。
+换包名等于换应用，从旧包名升级需要先卸载旧包。
 
 ### 发布签名
 

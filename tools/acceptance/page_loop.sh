@@ -12,8 +12,8 @@
 # 每页的等待不一样：诊断页和布局编辑页要读整份主题（200KB）+ 展开，0.6s 不够，
 # 会误报 MISS。判据只有一条：最后一行 `done misses=0`。
 
-PKG=com.osfans.trime.editor.debug
-CLS=com.osfans.trime.editor
+PKG=com.trime.editor.debug
+CLS=com.trime.editor
 THEME=tongwenfeng.trime
 N=${1:-10}
 misses=0

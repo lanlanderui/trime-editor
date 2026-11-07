@@ -23,12 +23,12 @@ if (!hasReleaseKey) {
 }
 
 android {
-    namespace = "com.osfans.trime.editor"
+    namespace = "com.trime.editor"
     compileSdk = 37
     buildToolsVersion = "36.0.0"
 
     defaultConfig {
-        applicationId = "com.osfans.trime.editor"
+        applicationId = "com.trime.editor"
         minSdk = 21
         targetSdk = 37
         versionCode = 4

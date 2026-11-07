@@ -54,7 +54,7 @@
 
         <!--
           给输入法按键调用：`command: run` 的 option 写
-          `com.osfans.trime.editor/.QuickApplyActivity`（或 .QuickSaveActivity）。
+          `com.trime.editor/.QuickApplyActivity`（或 .QuickSaveActivity）。
           必须 exported：输入法用显式 ComponentName 跨应用启动。
           无界面、不进最近任务，做完一句 toast 就 finish。
         -->

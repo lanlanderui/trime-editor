@@ -70,7 +70,7 @@
             android:exported="true" />
         <!--
           调试包专用：applicationId 多了 .debug，`pkg/.QuickApplyActivity` 会展开到
-          com.osfans.trime.editor.debug 下找类。这两个别名让同一份主题的 option
+          com.trime.editor.debug 下找类。这两个别名让同一份主题的 option
           在 release / debug 上都能启动（见 QuickEntryAliases.kt）。
         -->
         <activity
