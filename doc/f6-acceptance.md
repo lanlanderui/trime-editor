@@ -31,9 +31,10 @@ primary on paper 10.90，全部达标。
 
 ## 2. 全量截图（18 / 18）
 
-`f6_light_*.png` / `f6_dark_*.png`，九页：工作台、预览、样式、配色、布局、
-按键、工具条、候选窗、检查。设备本次为**横屏**（3000×2120），两栏目录栏常驻，
-正好覆盖平板的主用方向；竖屏三屏图在 B1/B2/B3 阶段已有。
+`f6_light_*.png` / `f6_dark_*.png`，十页：工作台、预览、样式、配色、布局、
+键盘编辑、按键、工具条、候选窗、检查。设备本次为**横屏**（3000×2120），
+两栏目录栏常驻，正好覆盖平板的主用方向；竖屏三屏图在 B1/B2/B3 阶段已有。
+（键盘编辑页是复核清单时补进来的：`f6_{light,dark}_kbdedit.png`。）
 
 ## 3. G-05 小字实测（平板）
 
@@ -74,24 +75,56 @@ primary on paper 10.90，全部达标。
 - versionCode 3 → 4，versionName 0.3.0 → 0.4.0
 - 签名与 0.3.0 同一份 `keystore/trime-editor.jks`（可覆盖安装）
 
-## 7. 复跑命令
+## 7. 手机 411dp（`wm size` 模拟，非真机）
+
+没有手机设备，用平板模拟：**`wm size 1028x1920` + density 400 不变**
+（1028 ÷ 2.5 = **411.2dp** 宽），并 `accelerometer_rotation=0`、
+`user_rotation=0` 强制竖屏。`sw411dp < 600dp` 时 `ui_two_pane=false`，
+单栏布局与真手机一致。验完脚本 `finally` 里 `wm size reset` 并还原旋转设置。
+
+`f6_phone_{light,dark}_*.png` 共 **20 张**（十页 × 亮暗），总览见
+`f6_phone_overview_{light,dark}.png`。逐页看过：
+
+- 十页全部单栏，标题 / 卡片 / dock 都在，无裁切无重叠。
+- B2 段控 4 项在 411dp 下标签完整；三项 dock 不挤。
+- B3 六项 dock（加键 / 删键 / 左移 / 右移 / 撤销 / 重做）全部可读，
+  键盘通栏、检查器卡完整。
+
+**发现并修掉一处缺陷**：预览页 `menu/preview.xml` 里「编辑样式 / 编辑配色」
+两项 `showAsAction=ifRoom`，在 411dp 下把标题挤成「templa...」。页面内本来
+就有「配色方案 / 键盘布局」等跳转卡片，这两项是重复入口，改成 `never`
+收进 ⋯ 后标题完整（`.tmp/f6_phone_light_preview.png`）。改完重跑了全量门禁
+并**重打了 0.4.0 release 包**。
+
+**已知偏差（不改）**：B2 在 411dp 下预览板（键盘约 300dp 高）占首屏约 45%，
+表单首屏只剩三行 + dock，需滚动；设计稿 B2 手机框没画预览板。保留预览板是
+「改色立刻看到键盘变」的前提（也保 D2 像素闸门），见偏差表 B2-i。
+
+**真机仍待验**：模拟能覆盖布局与资源配置，但覆盖不了真机的状态栏高度、
+手势导航条与字体缩放；接到 411dp 真手机后仍需补一轮。
+
+## 8. 复跑命令
 
 ```bash
 export PATH=/d/AndroidSdk/platform-tools:$PATH MSYS_NO_PATHCONV=1
 python .tmp/f6_shots.py        # 9 页 × 亮/暗（带 pull 大小校验）
+python .tmp/f6_kbdedit.py      # 键盘编辑页：平板 + 手机宽度
+python .tmp/f6_phone.py        # 手机宽度 10 页 × 亮暗（带 finally 恢复）
+python .tmp/f6_preview_fix.py  # 预览页修复后重拍
 python .tmp/f6_perf.py         # 冷启动 3 轮取中位 + 五页热启动
 python .tmp/f6_contrast.py     # 对比度表（无需设备）
 python .tmp/f6_smalltext.py    # G-05 小字 bounds + 放大图
 python .tmp/f6_skins.py        # proof / tonal 回归，结束自动切回 expressive
 ```
 
-## 8. 判定
+## 9. 判定
 
 F6 六项（全量截图、对比度、G-05、性能、旧皮肤不回归、0.4.0 打包）
 在平板横屏上全部完成且达标；舞台皮肤亮/暗对比度全绿，三屏与五页语言一致。
+手机 411dp 已用 `wm size` 模拟补齐十页 × 亮暗并修掉预览页标题截断。
 
-**唯一未完成项**：手机（411dp）截图——没有手机设备，B1/B2/B3/F5 的
-手机图一直欠着，接到手机后需补。这不构成平板版本的验收阻塞。
+**唯一未完成项**：真手机 411dp 截图——没有手机设备，模拟覆盖布局但不覆盖
+状态栏 / 手势条 / 字体缩放；接到手机后需补一轮，不阻塞当前版本。
 
 **过程记录**：设备在 20:58 掉线过一次（`adb devices` 为空），当时批量截图
 脚本没校验 `adb pull` 返回，20 张全打印 `ok` 却只落了 2 张；重连后给
