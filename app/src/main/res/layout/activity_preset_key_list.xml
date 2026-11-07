@@ -18,24 +18,23 @@
         android:id="@+id/search"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/ui_sheet"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/bg_field"
         android:fontFamily="monospace"
         android:hint="@string/key_search_hint"
         android:imeOptions="actionSearch"
         android:inputType="text"
-        android:paddingStart="@dimen/ui_gutter"
+        android:paddingStart="16dp"
         android:paddingTop="12dp"
-        android:paddingEnd="@dimen/ui_gutter"
+        android:paddingEnd="16dp"
         android:paddingBottom="12dp"
         android:singleLine="true"
         android:textColor="?attr/ui_ink"
         android:textColorHint="?attr/ui_muted"
         android:textSize="12sp" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="?attr/ui_divider" />
 
     <FrameLayout
         android:layout_width="match_parent"

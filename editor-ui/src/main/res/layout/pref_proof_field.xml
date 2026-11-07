@@ -9,12 +9,17 @@
   可直接改的单值行：左边中文名 + 键名，右边一个等宽输入框，下面一条很淡的下划线。
 
   候选窗那页是「就地改数值」而不是「点开对话框」——两种交互都要留着，
-  但外观必须是同一套：同一张纸上，行就是行，不能因为可编辑就长成输入表单。
+  但外观必须是同一套：一张卡片里的一行，不能因为可编辑就长成输入表单。
   下划线是唯一的「这里能输入」的提示，不画框、不加底色。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="3dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="3dp"
+    android:background="@drawable/bg_card"
     android:orientation="vertical">
 
     <LinearLayout
@@ -22,9 +27,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="@dimen/ui_gutter"
+        android:paddingStart="16dp"
         android:paddingTop="9dp"
-        android:paddingEnd="@dimen/ui_gutter"
+        android:paddingEnd="16dp"
         android:paddingBottom="9dp">
 
         <LinearLayout
@@ -94,10 +99,4 @@
         </LinearLayout>
     </LinearLayout>
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="@dimen/ui_gutter"
-        android:layout_marginEnd="@dimen/ui_gutter"
-        android:background="?attr/ui_rule" />
 </LinearLayout>

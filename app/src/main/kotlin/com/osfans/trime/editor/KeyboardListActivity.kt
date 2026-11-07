@@ -14,7 +14,6 @@ import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.osfans.trime.data.theme.ThemeLoader
 import com.osfans.trime.data.theme.ThemeStyleWriter
@@ -74,7 +73,7 @@ class KeyboardListActivity : EditorActivity() {
 
         binding.keyboards.layoutManager = LinearLayoutManager(this)
         binding.keyboards.adapter = adapter
-        binding.keyboards.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        // 卡片化之后不再需要分隔线：一张卡自己就是一个条目，线会从圆角外面穿过去。
         binding.search.addTextChangedListener(
             object : android.text.TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit

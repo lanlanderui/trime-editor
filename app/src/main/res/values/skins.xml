@@ -34,6 +34,7 @@
         <item name="colorPrimary">@color/tonal_primary</item>
         <item name="colorPrimaryDark">@color/tonal_primary_dark</item>
         <item name="colorAccent">@color/tonal_accent</item>
+        <item name="colorControlNormal">@color/tonal_ink_2</item>
 
         <item name="ui_paper">@color/tonal_paper</item>
         <item name="ui_sheet">@color/tonal_sheet</item>
@@ -94,6 +95,7 @@
         <item name="colorPrimary">@color/expressive_primary</item>
         <item name="colorPrimaryDark">@color/expressive_primary_dark</item>
         <item name="colorAccent">@color/expressive_accent</item>
+        <item name="colorControlNormal">@color/expressive_ink_2</item>
 
         <item name="ui_paper">@color/expressive_paper</item>
         <item name="ui_sheet">@color/expressive_sheet</item>

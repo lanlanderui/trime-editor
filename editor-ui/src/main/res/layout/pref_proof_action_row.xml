@@ -14,7 +14,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="3dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="3dp"
+    android:background="@drawable/bg_card_ripple"
     android:orientation="vertical">
 
     <LinearLayout
@@ -22,9 +26,9 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="@dimen/ui_gutter"
-        android:paddingTop="@dimen/ui_row_pad_v"
-        android:paddingEnd="@dimen/ui_gutter"
+        android:paddingStart="16dp"
+        android:paddingTop="13dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="4dp">
 
         <LinearLayout
@@ -66,14 +70,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingStart="@dimen/ui_gutter"
-        android:paddingEnd="@dimen/ui_gutter"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="9dp" />
 
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="@dimen/ui_gutter"
-        android:layout_marginEnd="@dimen/ui_gutter"
-        android:background="?attr/ui_rule" />
 </LinearLayout>

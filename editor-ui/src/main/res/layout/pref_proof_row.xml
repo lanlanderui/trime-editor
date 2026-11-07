@@ -6,16 +6,23 @@
 -->
 
 <!--
-  四列行：中文名 / 键名＋引用锚点 / 色块 / 十六进制。
+  一条设置一张小卡：中文名 / 键名＋引用锚点 / 色块 / 十六进制。
 
   四样缺一样，改主题的人就得去开文件：中文名用来认、键名用来抄、色块用来
-  看、hex 用来对。分隔线缩进一个 gutter（不是整行通栏），是为了让「一行」
-  看起来是纸上的一个条目，而不是列表里的一格。
+  看、hex 用来对。
+
+  卡片化之后不再画分隔线：行与行之间靠 6dp 间距分开，这跟配色页的
+  「卡片 + 间距」是同一套语言。外边距 16/6 写在根上，RecyclerView 的
+  item 会照它排版。
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="3dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginBottom="3dp"
+    android:background="@drawable/bg_card_ripple"
     android:orientation="vertical">
 
     <LinearLayout
@@ -23,10 +30,10 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="@dimen/ui_gutter"
-        android:paddingTop="@dimen/ui_row_pad_v"
-        android:paddingEnd="@dimen/ui_gutter"
-        android:paddingBottom="@dimen/ui_row_pad_v">
+        android:paddingStart="16dp"
+        android:paddingTop="13dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="13dp">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -91,11 +98,4 @@
             android:gravity="end"
             android:singleLine="true" />
     </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="@dimen/ui_gutter"
-        android:layout_marginEnd="@dimen/ui_gutter"
-        android:background="?attr/ui_rule" />
 </LinearLayout>

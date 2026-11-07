@@ -20,6 +20,7 @@
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
         android:background="?attr/ui_sheet"
         android:scrollbars="none">
 
@@ -33,11 +34,6 @@
             android:paddingVertical="10dp" />
 
     </HorizontalScrollView>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="?attr/ui_rule_strong" />
 
     <FrameLayout
         android:id="@+id/content"

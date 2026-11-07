@@ -17,7 +17,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.osfans.trime.data.theme.ThemeLoader
 import com.osfans.trime.data.theme.ThemeStyleWriter
@@ -83,7 +82,7 @@ class PresetKeyListActivity : EditorActivity() {
 
         binding.keys.layoutManager = LinearLayoutManager(this)
         binding.keys.adapter = adapter
-        binding.keys.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        // 卡片化之后不再需要分隔线：一张卡自己就是一个条目，线会从圆角外面穿过去。
         intent.getStringExtra(EXTRA_QUERY)?.takeIf { it.isNotBlank() }?.let { query ->
             // Arriving from a diagnostic: put the reader on the entry it named.
             binding.search.setText(query)

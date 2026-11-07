@@ -8,8 +8,10 @@ package com.osfans.trime.editor
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -182,7 +184,7 @@ class DiagnosticsActivity : EditorActivity() {
                     setTextColor(
                         UiTokens.color(
                             this@DiagnosticsActivity,
-                            if (selected) UiR.attr.ui_paper else UiR.attr.ui_ink_2,
+                            if (selected) UiR.attr.ui_on_primary else UiR.attr.ui_ink_2,
                         ),
                     )
                     setOnClickListener {
@@ -205,14 +207,14 @@ class DiagnosticsActivity : EditorActivity() {
         chip(getString(R.string.dg_filter_info), all.count { it.severity == ThemeDiagnostics.Severity.INFO }, ThemeDiagnostics.Severity.INFO)
     }
 
-    /** 选中的芯片是实心墨，其余是描边——和预览页的方案芯片同一种语言。 */
+    /** 选中的芯片是主色实心，其余是描边——和配色页段控同一种语言。 */
     private fun chipBackground(selected: Boolean): GradientDrawable = GradientDrawable().apply {
-        cornerRadius = dp(4).toFloat()
+        cornerRadius = dp(20).toFloat()
         if (selected) {
-            setColor(UiTokens.color(this@DiagnosticsActivity, UiR.attr.ui_ink))
+            setColor(UiTokens.color(this@DiagnosticsActivity, UiR.attr.ui_primary))
         } else {
-            setColor(0)
-            setStroke(dp(1), UiTokens.color(this@DiagnosticsActivity, UiR.attr.ui_rule_strong))
+            setColor(UiTokens.color(this@DiagnosticsActivity, UiR.attr.ui_card))
+            setStroke(dp(1), UiTokens.color(this@DiagnosticsActivity, UiR.attr.ui_rule))
         }
     }
 
@@ -225,13 +227,29 @@ class DiagnosticsActivity : EditorActivity() {
     private fun row(finding: ThemeDiagnostics.Finding): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         isClickable = true
-        setBackgroundResource(android.R.drawable.list_selector_background)
+        // 卡片 + 涟漪：涟漪的形状由 mask 决定，缺了它水波会从方角里溢出来。
+        background =
+            RippleDrawable(
+                ColorStateList.valueOf(0x1F000000),
+                UiTokens.rounded(this@DiagnosticsActivity, UiR.attr.ui_radius_card),
+                null,
+            )
         setOnClickListener { jump(finding) }
+        layoutParams =
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                marginStart = dp(16)
+                marginEnd = dp(16)
+                topMargin = dp(3)
+                bottomMargin = dp(3)
+            }
 
         val body =
             LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(dp(20), dp(10), dp(20), dp(10))
+                setPadding(dp(16), dp(13), dp(16), dp(13))
             }
         addView(body)
 
@@ -268,16 +286,6 @@ class DiagnosticsActivity : EditorActivity() {
                 textSize = 13f
                 setLineSpacing(0f, 1.25f)
                 setTextColor(UiTokens.color(context, UiR.attr.ui_ink))
-            },
-        )
-
-        addView(
-            View(context).apply {
-                setBackgroundColor(UiTokens.color(context, UiR.attr.ui_rule))
-            },
-            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
-                marginStart = dp(20)
-                marginEnd = dp(20)
             },
         )
     }
