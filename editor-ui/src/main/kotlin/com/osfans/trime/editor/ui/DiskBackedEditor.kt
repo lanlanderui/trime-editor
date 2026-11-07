@@ -38,6 +38,13 @@ interface DiskBackedEditor {
     fun sections(): List<EditorSection> = emptyList()
 
     /**
+     * 跳到某一节。默认什么都不做：Preference 系的表单由宿主直接滚 RecyclerView
+     * （见 ThemeEditorActivity.scrollToSection），自绘的屏（如配色页「一组一屏」）
+     * 自己解释 position——对它们来说，「跳到这一组」比「滚到某一行」更直接。
+     */
+    fun scrollTo(position: Int) {}
+
+    /**
      * 样张下面那行统计，例如「未设 8 · 本次已改 3」；空串表示这一页没有统计可说，
      * 界面会把整行收起来。
      */

@@ -67,6 +67,15 @@ abstract class ThemeEditorActivity : EditorActivity() {
     /** 这一页在目录栏里属于哪一章（[com.osfans.trime.editor.ui.proof.Outline] 的 id）。 */
     protected abstract val outlineChapter: String
 
+    /**
+     * 舞台皮肤下把 ActionBar 收起来（设计稿 B 三屏都没有顶栏）。
+     *
+     * 页面自己负责导航与菜单入口（返回胶囊 / ⋯），和 B1 的 heroMenu 同一套。
+     * 基类只提供开关：默认 false，样式页还是 Preference 界面，收掉顶栏它没有
+     * 地方放菜单。
+     */
+    protected open val stageHidesToolbar: Boolean get() = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityThemeEditorBinding.inflate(layoutInflater)
@@ -83,6 +92,10 @@ abstract class ThemeEditorActivity : EditorActivity() {
             finish()
             return
         }
+        // 舞台皮肤没有顶栏：标题与菜单由页面自己画（见 [stageHidesToolbar]）。
+        // setSupportActionBar 之后设 GONE 不影响菜单分发——ActionBar 还在，
+        // 只是不占地方；PopupMenu 走的还是同一条 onOptionsItemSelected。
+        binding.toolbar.visibility = if (stageHidesToolbar) View.GONE else View.VISIBLE
         board = ThemeBoard.attach(binding.boardHost)
         // 两栏必须在第一次布局之前定下来：预览板是按实际宽度算键宽的，
         // 先按整幅宽度画一遍、再把目录栏塞进去，键盘就会画到框外去。
@@ -272,11 +285,16 @@ abstract class ThemeEditorActivity : EditorActivity() {
 
     /** 节 = 滚到这一行。位置由表单自己算（可见项序号），这里只负责滚。 */
     private fun scrollToSection(position: Int) {
-        val list =
-            (supportFragmentManager.findFragmentById(R.id.settings) as? PreferenceFragmentCompat)
-                ?.listView ?: return
-        val manager = list.layoutManager as? LinearLayoutManager
-        if (manager != null) manager.scrollToPositionWithOffset(position, 0) else list.scrollToPosition(position)
+        val fragment = supportFragmentManager.findFragmentById(R.id.settings)
+        // Preference 系的表单：滚到那一行。
+        if (fragment is PreferenceFragmentCompat) {
+            val list = fragment.listView
+            val manager = list.layoutManager as? LinearLayoutManager
+            if (manager != null) manager.scrollToPositionWithOffset(position, 0) else list.scrollToPosition(position)
+            return
+        }
+        // 自绘的屏（配色页一组一屏）：position 是段号，跳组。
+        (fragment as? DiskBackedEditor)?.scrollTo(position)
     }
 
     private fun showFailure(

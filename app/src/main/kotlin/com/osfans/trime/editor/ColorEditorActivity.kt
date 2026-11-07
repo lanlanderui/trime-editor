@@ -11,6 +11,8 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
@@ -29,6 +31,7 @@ import com.osfans.trime.editor.ui.color.ColorSchemeFragment
 import com.osfans.trime.editor.ui.color.MaterialYouDialog
 import com.osfans.trime.editor.ui.color.NightMode
 import com.osfans.trime.editor.ui.color.PreviewState
+import com.osfans.trime.editor.ui.skin.UiMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,6 +57,9 @@ class ColorEditorActivity :
     override val subtitleRes: Int get() = R.string.color_editor_title
 
     override val outlineChapter: String get() = "colors"
+
+    /** 舞台皮肤没有顶栏：标题行与 ⋯ 在配色页里（设计稿 B2-01）。 */
+    override val stageHidesToolbar: Boolean get() = UiMode.caps.stageHeader
 
     override fun refreshCaption() = updateCaption()
 
@@ -216,7 +222,13 @@ class ColorEditorActivity :
         Toast.makeText(this, resId, Toast.LENGTH_SHORT).show()
     }
 
-    private fun showSchemePicker() {
+    /**
+     * 方案胶囊的下拉：列出所有方案，切到点开的那一个。
+     *
+     * 板子会跟着走——颜色通过「当前方案」解析，留着上一个不管，键盘画的就会
+     * 是另一套调色板（见 [switchTo]）。
+     */
+    override fun showSchemePicker() {
         val file = ThemeStyleWriter.editableSourceFile(themeId) ?: return
         val schemes = ThemeSchemeWriter.listSchemes(file)
         if (schemes.isEmpty()) return
@@ -231,6 +243,23 @@ class ColorEditorActivity :
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
+
+    /**
+     * 页面上的 ⋯：菜单项和 ActionBar 里是同一份（切换配色 / Material You / 目录）。
+     *
+     * 舞台皮肤收掉了 ActionBar，这三个入口没有别的地方可去；PopupMenu 的点
+     * 击转回 activity 的 onOptionsItemSelected，和 ActionBar 走完全相同的路。
+     */
+    override fun showPageMenu(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menuInflater.inflate(R.menu.color_editor, popup.menu)
+        OutlineMenu.addTo(popup.menu, this)
+        popup.menu.findItem(R.id.action_switch_scheme)?.isVisible = knownSchemeCount() > 1
+        popup.setOnMenuItemClickListener { onOptionsItemSelected(it) }
+        popup.show()
+    }
+
+    private fun knownSchemeCount(): Int = ThemeStyleWriter.editableSourceFile(themeId)?.let { ThemeSchemeWriter.listSchemes(it).size } ?: 0
 
     /**
      * Edits another scheme.

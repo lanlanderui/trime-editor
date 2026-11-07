@@ -101,6 +101,22 @@
     <string name="style_write_failed">写入主题文件失败</string>
 
     <!-- 配色页：分组、54 个色键标签、方案管理。同样从测试3 机械抽取。 -->
+    <!-- B2 舞台配色页：标题、段控、副标题、「下一个组」、方案段、dock 短标签。 -->
+    <string name="color_b2_title">配色</string>
+    <string name="color_b2_tab_candidate">候选栏</string>
+    <string name="color_b2_tab_keyboard">键盘</string>
+    <string name="color_b2_tab_status">状态</string>
+    <string name="color_b2_subtitle">%1$d 组 · %2$d 个色值，改一项写一行</string>
+    <string name="color_b2_next_group">下一个组</string>
+    <string name="color_b2_next_card">%1$s · %2$d 项</string>
+    <string name="color_b2_next_first">%1$s 起</string>
+    <string name="color_b2_scheme_name">方案名</string>
+    <string name="color_b2_scheme_id">方案 ID</string>
+    <string name="color_b2_scheme_stats">未设 %1$d 项 · 共 %2$d 项</string>
+    <string name="color_b2_scheme_hint">新建 / 重命名 / 删除 在底部工具栏</string>
+    <string name="dock_new_scheme">新建</string>
+    <string name="dock_rename">重命名</string>
+    <string name="dock_delete">删除</string>
     <string name="color_group_app_chrome">界面</string>
     <string name="color_group_candidate_bar">候选栏与编码区</string>
     <string name="color_group_function_key">功能键（OFF / ON）</string>
