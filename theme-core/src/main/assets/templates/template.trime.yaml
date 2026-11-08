@@ -316,14 +316,15 @@ preset_keys:
   #Demo_Slide: {label: 滑动, send: BackSpace, slide_cursor: true, slide_delete: true}   # 字段示例：slide_cursor 滑动移动光标、slide_delete 滑动删除
   Demo_Command: {label: 命令, command: run, option: "com.osfans.trime03"}   # 字段示例：command + option 执行命令（option 可以是网址或包名）
 
+  # 动态配色快捷键指向编辑器：正式包 com.trime.editor，调试包 com.trime.editor.debug
   DynamicColor:
     command: run
     label: "更新配色"
-    option: "com.osfans.trime.editor/.QuickApplyActivity"
+    option: "com.trime.editor/.QuickApplyActivity"
   SaveDynamicColor:
     command: run
     label: "收藏配色"
-    option: "com.osfans.trime.editor/.QuickSaveActivity"
+    option: "com.trime.editor/.QuickSaveActivity"
 
 
 

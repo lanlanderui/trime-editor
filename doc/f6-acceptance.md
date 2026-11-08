@@ -314,3 +314,33 @@ assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装
   卡片点击 → 另存 → 预览页加载的端到端真机验证未跑。离线已验证模板进包、
   字节一致、可解析、布局 id 与代码绑定齐全；设备接上后需补一次
   `.tmp/builtin_verify.py`（脚本会自动清理产生的测试主题）。
+
+## 17. 内置模版快捷键包名修复 + 0.4.1 装到平板（2026-11-09）
+
+用户发现内置全量参数模版里 `DynamicColor` / `SaveDynamicColor` 仍写着
+`com.osfans.trime.editor/.QuickApplyActivity` / `.QuickSaveActivity` —— app 已在
+§12 改名为 `com.trime.editor`，这两行复制到输入法主题后会找不到 Activity。
+
+- 桌面源文件与仓库内置副本（`theme-core/src/main/assets/templates/`）**同时**字节级
+  修复为 `com.trime.editor/...`，并加一行注释说明调试包要换成
+  `com.trime.editor.debug`。diff 只有 2 行替换 + 1 行新增注释，LF / 无 BOM /
+  其余 920 行不动（39138 → 39229 B）。
+- `Demo_Command` 里的 `option: "com.osfans.trime03"` 是「command + option 可用包名/网址」
+  的**输入法包名示例**，不是编辑器快捷入口，保持原样。
+- 全仓扫过旧包名：只剩 §12 与 README 里讲改名历史的表述（历史事实，保留）。
+- 另一个会话已把版本升到 **0.4.1**（versionCode 5）并产出
+  `dist/同文编辑器-0.4.1.apk`，但那份包的内置模板仍带旧包名，且平板装的还是
+  0.4.0。本轮用修复后的代码重打 0.4.1 并覆盖安装到平板，
+  再从 APK 里核对模板、用 `cmd package resolve-activity` 核对两个快捷入口。
+- 全量门禁全绿；`BuiltinTemplateTest` 覆盖模板可解析。
+
+**实装与补验结果**：重打的 `dist/同文编辑器-0.4.1.apk`（6,207,453 B）内置模板
+39229 B、与桌面源文件逐字节一致，旧包名 0 处、新快捷入口 2 处；覆盖安装到平板
+`J7JBXCLVPFTSQKFA` 后 `versionCode=5 / 0.4.1`，
+`cmd package resolve-activity` 对 `com.trime.editor/.QuickApplyActivity` 与
+`/.QuickSaveActivity` 均解析成功。
+
+§16 因设备掉线欠下的真机端到端也一并补跑（`.tmp/builtin_verify.py`）：
+工作台内置方案卡显示「923 行」，点「保存到本地」→ `ThemePreviewActivity`；
+生成文件与模板**只差 1 行**（`name:` 值加引号，注释与间距保留），
+预览页无失败提示、方案 chips 正常；测试主题已自动清理，设备目录恢复原状。

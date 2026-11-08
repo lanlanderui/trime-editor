@@ -116,6 +116,10 @@ SaveDynamicColor:
 模板由用户手工维护，别用脚本覆盖；`theme-core` 的 `BuiltinTemplateTest` 会
 检查它能被编辑器自己的 YAML 解析器读开、顶层段齐全、色键表完整。
 
+模板里的 `DynamicColor` / `SaveDynamicColor` 两个动作指向
+`com.trime.editor/.QuickApplyActivity` 与 `/.QuickSaveActivity`（正式包）。
+装的是调试包时把包名换成 `com.trime.editor.debug`；模板内已写了这行注释。
+
 键盘编辑页舞台右上角的「▤ 完整 / ⌨ 仅键盘」可切掉候选栏与底部留白的示意带子；
 键盘本身的宽度与绘制不变，预览仍然与输入法同宽。
 
