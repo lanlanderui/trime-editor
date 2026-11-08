@@ -74,6 +74,15 @@ class ThemeActionsTest :
                 val out = String(ThemeActions.withName(source, "a\"b"), Charsets.UTF_8)
                 out shouldContain "name: \"a\\\"b\""
             }
+
+            then("内置模板 name 行的行内注释与间距都保留") {
+                val line = "name: 模版主题            # 主题名称，显示在主题列表里"
+                val src = ("# head\r\n" + line + "\r\nstyle:\r\n").toByteArray(Charsets.UTF_8)
+                val out = String(ThemeActions.withName(src, "本地主题"), Charsets.UTF_8)
+                out shouldContain "name: \"本地主题\"            # 主题名称，显示在主题列表里"
+                out shouldContain "# head\r\n"
+                out shouldContain "\r\nstyle:\r\n"
+            }
         }
 
         given("N-2 重命名的文件级动作") {

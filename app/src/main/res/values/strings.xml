@@ -296,4 +296,12 @@
     <string name="stage_bands_keys">⌨ 仅键盘</string>
     <!-- N-7：英雄区显式的皮肤切换入口 -->
     <string name="hero_appearance">◑ 外观</string>
+    <!-- 内置方案（随包全量参数模版） -->
+    <string name="builtin_glyph">内</string>
+    <string name="builtin_title">内置方案</string>
+    <string name="builtin_meta_loading">全量参数模版 · 随包内置</string>
+    <string name="builtin_meta">全量参数模版 · %1$d 行 · 随包内置</string>
+    <string name="builtin_save">保存到本地</string>
+    <string name="builtin_default_name">模版主题</string>
+    <string name="builtin_save_hint">把内置模版复制一份到当前主题目录，只改主题名称，其余参数原样保留。</string>
 </resources>

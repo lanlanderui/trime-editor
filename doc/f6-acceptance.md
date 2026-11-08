@@ -294,3 +294,23 @@ assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装
   `ui_*` token，`windowBackground` / `colorControlNormal` 等仍取底层默认；
   重写基础主题的风险远大于收益，且它不属于「外观里的选项」。
 - 上文 §1 / §5 中「校样不回归」「三套皮肤」是当时的验收事实，作为历史记录保留。
+
+## 16. 用户提供的全量参数模版成为内置方案（2026-11-08 中午）
+
+用户提供 `D:/Desktop/template.trime.yaml`（922 行 / 39138 B / LF），要求作为
+编辑器内置方案、可直接保存到本地。
+
+- **替换**：字节级覆盖 `theme-core/src/main/assets/templates/template.trime.yaml`
+  （旧版 736 行 / 32818 B）。app 的 `assets.srcDirs` 挂的就是这份目录，
+  核对 APK 内 `assets/templates/template.trime.yaml` 与桌面文件**逐字节一致**。
+- **可见入口**：工作台「其余主题」上方新增「内置方案」卡片（行数动态读模板、
+  「保存到本地」按钮），与 dock「新建」共用 `promptCreate`；复制只改第一处
+  `name:` 行的值，`withName` 现在连行内注释和间距一起保留（新增单测）。
+- **可解析**：`ThemeYaml.parser` 是 `strictMode = false`，`PresetKey` 模型已含
+  模板新增的 `text` / `commit` / `sticky` / `slide_delete` 字段；新增
+  `theme-core/BuiltinTemplateTest` 钉住顶层九个段、色键表 > 50 项、LF 无 BOM、
+  `name:` 行格式。全量门禁全绿。
+- **设备掉线**：本轮 adb 无设备（`adb kill-server/start-server` 后仍为空），
+  卡片点击 → 另存 → 预览页加载的端到端真机验证未跑。离线已验证模板进包、
+  字节一致、可解析、布局 id 与代码绑定齐全；设备接上后需补一次
+  `.tmp/builtin_verify.py`（脚本会自动清理产生的测试主题）。

@@ -95,7 +95,13 @@ class MainActivity : EditorActivity() {
             startActivity(Intent(this, AppearanceActivity::class.java))
         }
         // N-1：dock 换成设计稿的四项主题管理动作。
-        binding.dockNew.setOnClickListener { promptNewTheme() }
+        binding.dockNew.setOnClickListener {
+            promptCreate(getString(R.string.theme_new_default), R.string.theme_new_title)
+        }
+        binding.builtinCard.setOnClickListener {
+            promptCreate(getString(R.string.builtin_default_name), R.string.builtin_title)
+        }
+        loadBuiltinMeta()
         binding.dockSwitch.setOnClickListener { showSwitchDialog() }
         binding.dockImport.setOnClickListener { importLauncher.launch(arrayOf("*/*")) }
         binding.dockIme.setOnClickListener { InputMethodApp.launch(this) }
@@ -302,12 +308,42 @@ class MainActivity : EditorActivity() {
         setPadding(dp(20), dp(12), dp(20), dp(12))
     }
 
-    /** N-1：新建。模板来自随包 assets，只改一行 `name:`。 */
-    private fun promptNewTheme() {
+    /**
+     * 内置模版的规模按真实行数显示，不写死在字符串里：模板由用户手工维护，
+     * 换一份之后这里会自动跟着变。
+     */
+    private fun loadBuiltinMeta() {
+        lifecycleScope.launch {
+            val lines =
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        assets.open(ThemeActions.TEMPLATE_ASSET).use { stream ->
+                            stream.bufferedReader().useLines { it.count() }
+                        }
+                    }.getOrDefault(0)
+                }
+            binding.builtinMeta.text =
+                if (lines > 0) {
+                    getString(R.string.builtin_meta, lines)
+                } else {
+                    getString(R.string.builtin_meta_loading)
+                }
+        }
+    }
+
+    /**
+     * 「新建」与「内置方案 → 保存到本地」是同一个动作：从随包模板复制一份，
+     * 只改 `name:` 一行，落到用户主题目录，然后打开编辑。区别只在默认名与标题。
+     */
+    private fun promptCreate(
+        defaultName: String,
+        titleRes: Int,
+    ) {
         val dir = EditorPrefs.themeDir ?: return
-        val input = nameInput(getString(R.string.theme_new_default))
+        val input = nameInput(defaultName)
         AlertDialog.Builder(this)
-            .setTitle(R.string.theme_new_title)
+            .setTitle(titleRes)
+            .setMessage(R.string.builtin_save_hint)
             .setView(input)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->

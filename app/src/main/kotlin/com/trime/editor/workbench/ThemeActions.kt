@@ -35,7 +35,7 @@ import java.io.File
 object ThemeActions {
     const val YAML_SUFFIX = ".trime.yaml"
     private const val ID_SUFFIX = ".trime"
-    private const val TEMPLATE_ASSET = "templates/template.trime.yaml"
+    const val TEMPLATE_ASSET = "templates/template.trime.yaml"
 
     data class Outcome(
         val ok: Boolean,
@@ -60,16 +60,19 @@ object ThemeActions {
     }
 
     /**
-     * 只换第一处 `name:` 行，行尾与其余字节原样保留。
+     * 只换第一处 `name:` 行的值，行内注释、行尾、其余字节原样保留。
      * 模板/副本不改这行的话，两份主题在列表里会同名，分不清谁是谁。
      *
+     * 内置模版的 `name:` 行后面还挂着 `# 主题名称…` 的说明，一并保住。
      * 单独留出来给单测：改写必须保住注释、缩进与 CRLF，且只碰第一行。
      */
     fun withName(source: ByteArray, name: String): ByteArray {
         val text = String(source, Charsets.UTF_8)
-        val re = Regex("(?m)^name:[^\r\n]*")
+        val re = Regex("""(?m)^(name:\s*)([^#\r\n]*?)([ \t]*#[^\r\n]*)?$""")
         val match = re.find(text) ?: return source
-        return text.replaceRange(match.range, "name: \"${name.replace("\"", "\\\"")}\"").toByteArray(Charsets.UTF_8)
+        val quoted = "\"${name.replace("\"", "\\\"")}\""
+        val comment = match.groupValues.getOrNull(3).orEmpty()
+        return text.replaceRange(match.range, match.groupValues[1] + quoted + comment).toByteArray(Charsets.UTF_8)
     }
 
     /** 新建：从随包模板复制一份，并把主题内部的 `name:` 改成用户给的名字。 */
