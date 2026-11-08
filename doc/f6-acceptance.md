@@ -344,3 +344,35 @@ assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装
 工作台内置方案卡显示「923 行」，点「保存到本地」→ `ThemePreviewActivity`；
 生成文件与模板**只差 1 行**（`name:` 值加引号，注释与间距保留），
 预览页无失败提示、方案 chips 正常；测试主题已自动清理，设备目录恢复原状。
+
+## 18. 快捷键「按了没更新配色」排查（2026-11-09 00:4x）
+
+用户反馈：键盘上绑定的 `DynamicColor` / `SaveDynamicColor` 按下去没有更新动态配色。
+
+**排查结论（三层，按阻断顺序）**：
+
+1. **设备上那份主题还是旧包名** —— `/storage/emulated/0/rime/template.trime.yaml`
+   第 319–326 行的 `option` 仍是 `com.osfans.trime.editor/.QuickApplyActivity` /
+   `/.QuickSaveActivity`。app 改名后这个包名不存在，输入法 `ComponentName.unflatten`
+   之后启动会 `ActivityNotFound`，**按键当场就失败，配色当然不会变**。
+   这份文件是 11-07 14:23 的旧模板（39138 B），编辑器改内置模板**不会**回头覆盖
+   用户目录里已存在的主题。
+2. **编辑器写盘链路本身正常** —— 用 `am start -n com.trime.editor/.QuickApplyActivity`
+   模拟按键触发：文件 mtime 更新、`.revision` 19 → 20 → 21 → 22 递增、
+   `material_you` / `material_you_dark` 两套方案在（790 / 849 行），无异常日志。
+   同一张壁纸连续两次生成的配色完全相同（diff 为空），属预期。
+3. **原版输入法不认 `.revision`** —— `trime3` 源码里搜不到读取 `.revision` 的代码
+   （该复核是 `com.osfans.trime03` D5 分支才有的）。所以即使写盘成功，
+   输入法进程仍用启动时读进内存的旧主题，**必须重载一次**（切换主题或重启输入法）。
+
+**已做修复**：设备上那份主题用 `sed` 原地把两处包名换成 `com.trime.editor/...`
+（备份在 `.tmp/device_template_before_fix.yaml`）；diff 确认**只有这 2 行变化**，
+其余 920 行、LF、行尾换行都不动（39138 → 39124 B，差 14 B = 每次 23→16 字符 ×2）。
+修复后再次触发写盘，`revision` 21 → 22，两行仍是新包名。
+
+**需要用户确认/操作的两件事**：
+- 输入法当前主题要确实是「模版主题」（`template.trime.yaml`）。输入法默认读
+  `trime.yaml`，而设备用户目录里没有 `trime.yaml`——若主题选的是内置 `trime.yaml`，
+  这两个键根本不在它里面，按了也不会有任何反应。
+- 改完必须让输入法重载一次：设置里切一次主题，或重启输入法。之后按快捷键才会
+  立刻写盘（写盘后同样要重载才看得见配色变化，除非输入法支持 `.revision`）。
