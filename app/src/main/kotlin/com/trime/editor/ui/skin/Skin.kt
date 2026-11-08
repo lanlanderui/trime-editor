@@ -12,18 +12,17 @@ import androidx.annotation.StringRes
 import androidx.annotation.StyleRes
 import com.trime.editor.EditorPrefs
 import com.trime.editor.R
-import com.trime.editor.ui.R as UiR
 
 /**
- * 三套界面皮肤。
+ * 两套界面皮肤（0.4.0 起下架「校样」）。
  *
  * 「皮肤」在这里是一张 ThemeOverlay（覆盖 `ui_*` token）+ 一组能力位（允许改结构
  * 的那几个开关）。它不含任何行为，所以：
  * - 换皮肤 = 换一层资源，页面代码不动；
  * - 皮肤之间不共享改动风险，第三张 overlay 写错只影响它自己。
  *
- * 校样（[PROOF]）是改造前的观感，保留它是为了「能退回去」：任何一次改版都可能
- * 有用户更习惯旧样子，而它的维护成本在 token 化之后接近零。
+ * 旧版本存下的 `proof` 不再是合法 id：[of] 会按未知值回退到 [DEFAULT]（层叠），
+ * 所以老用户升级后不会卡在已经下架的皮肤上。
  */
 enum class Skin(
     val id: String,
@@ -36,16 +35,6 @@ enum class Skin(
     @param:ColorRes val dotInk: Int,
     val caps: SkinCaps,
 ) {
-    PROOF(
-        id = "proof",
-        label = R.string.skin_proof,
-        tagline = R.string.skin_proof_tagline,
-        overlay = R.style.Skin_Proof,
-        dotPrimary = R.color.brand_primary,
-        dotCard = UiR.color.proof_sheet,
-        dotInk = UiR.color.proof_ink,
-        caps = SkinCaps(),
-    ),
     TONAL(
         id = "m3-tonal",
         label = R.string.skin_tonal,

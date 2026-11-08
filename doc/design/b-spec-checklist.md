@@ -190,3 +190,12 @@ N-3 / N-5 以「功能不丢、视觉按稿收口」处理，N-4 / N-6 规格对
 四项 dock 与 N-3 的收口都保持。三套皮肤下胶囊都可见（真机验过层叠 → 舞台往返）。
 真机：胶囊 → 外观页 → `m3-tonal` → 返回 → 胶囊仍在 → 切回 `m3-expressive`。
 
+### 校样下架（2026-11-08 上午，用户要求）
+
+外观页只保留 **层叠 / 舞台**。`Skin.PROOF` 枚举项、`Skin.Proof` 空壳 overlay、
+`skin_proof*` 两个字符串都删掉；`Skin.of("proof")` 现在走「未知 id → 层叠」分支，
+旧配置自动回退，不会卡在下架的皮肤上。基础主题 `Theme.TrimeEditor` 里的
+`proof_*` 色板**保留**：它是两套 overlay 的底层默认（windowBackground、
+colorControlNormal 等未被 overlay 覆盖的项仍取它），删掉要重写基础主题。
+
+> 上文 §1、§5 里关于「校样不回归」「三套皮肤」的记录是当时的历史事实，保留不改。

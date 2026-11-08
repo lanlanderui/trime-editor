@@ -88,7 +88,7 @@ object EditorPrefs : ThemePreferenceStore {
         set(value) = requirePrefs().edit().putBoolean(KEY_GUIDE_SEEN, value).apply()
 
     /**
-     * 当前界面皮肤（`proof` / `m3-tonal` / `m3-expressive`）。
+     * 当前界面皮肤（`m3-tonal` / `m3-expressive`；旧 `proof` 由 `Skin.of` 回退层叠）。
      *
      * 存的是 id 字符串而不是序号：皮肤会增删，序号会在版本之间错位，而错位的
      * 表现是「升级之后界面突然换了」，用户无法解释。读到未知 id 时由

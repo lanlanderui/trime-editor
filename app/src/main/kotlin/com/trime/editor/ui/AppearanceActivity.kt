@@ -23,7 +23,7 @@ import com.trime.editor.ui.skin.UiTokens
 import com.trime.editor.ui.R as UiR
 
 /**
- * 外观：三套皮肤里挑一套。
+ * 外观：两套皮肤里挑一套。
  *
  * 为什么单独一页而不是塞进「样式」偏好里：皮肤影响的是**当前这一屏**，改完
  * 要重建界面才有意义；放在设置列表里会让人以为「勾了就生效」，而实际上半屏

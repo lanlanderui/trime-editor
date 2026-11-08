@@ -281,3 +281,16 @@ assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装
 → 返回工作台胶囊仍可见 → 再切回 `m3-expressive`；三套皮肤 token 未动。
 **有意偏差**：稿子 B1 eyebrow 行只有「当前主题」，多一个胶囊是可用性优先，
 已记入核对表 N-7。
+
+## 15. 校样皮肤下架（2026-11-08 上午）
+
+用户要求「把外观中的校样去掉，只保留层叠和舞台」。
+
+- `Skin` 枚举删 `PROOF`，外观页 `Skin.entries` 自然只剩两项；
+  `Skin.of("proof")` 按未知 id 回退 `DEFAULT`（层叠），旧配置不会卡住。
+- 同步删 `Skin.Proof` 空壳 style 与 `skin_proof` / `skin_proof_tagline` 字符串；
+  注释、README、核对表里「三套皮肤」改成两套。
+- **保留**基础主题 `Theme.TrimeEditor` 的 `proof_*` 色板：两套 overlay 只覆盖
+  `ui_*` token，`windowBackground` / `colorControlNormal` 等仍取底层默认；
+  重写基础主题的风险远大于收益，且它不属于「外观里的选项」。
+- 上文 §1 / §5 中「校样不回归」「三套皮肤」是当时的验收事实，作为历史记录保留。

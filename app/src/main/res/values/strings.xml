@@ -242,8 +242,6 @@
     <string name="appearance_title">外观</string>
     <string name="appearance_subtitle">界面风格</string>
     <string name="appearance_hint">换皮肤只改界面，不改主题文件里的任何一行。已经打开的页面会重新加载一次。</string>
-    <string name="skin_proof">校样</string>
-    <string name="skin_proof_tagline">纸感底色 · 衬线标题 · 行分隔</string>
     <string name="skin_tonal">层叠</string>
     <string name="skin_tonal_tagline">Material You · 卡片分组 · 默认</string>
     <string name="skin_expressive">舞台</string>

@@ -6,7 +6,7 @@
 -->
 
 <!--
-  三张皮肤 overlay。
+  两张皮肤 overlay（校样已于 0.4.0 下架；基础主题仍沿用旧纸感底色作底层默认）。
 
   它们只有 `<item>`，没有 parent 之外的继承关系（`Skin.Tonal` 的隐式父级是
   空壳 `Skin`），因为 overlay 的语义是「往当前主题上盖几项」，不是「换一套
@@ -20,13 +20,7 @@
 
     <style name="Skin" />
 
-    <!--
-      校样（proof）：不写任何 item，等于完全继承 Theme.TrimeEditor 的默认值。
-
-      这不是偷懒——它保证「旧皮肤 = 改造前的样子」这件事在资源层面是显然的：
-      没有覆盖项，就没有漂移的余地。
-    -->
-    <style name="Skin.Proof" />
+    <!-- 校样（proof）已于 0.4.0 下架；旧 id 由 Skin.of 回退到层叠。 -->
 
     <!-- ===== 层叠（m3-tonal，默认） ===== -->
     <style name="Skin.Tonal">
