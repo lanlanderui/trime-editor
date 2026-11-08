@@ -1,4 +1,7 @@
-# 同文编辑器
+# 同文编辑器 · Android 工程
+
+> 产品介绍与截图见[仓库根目录的 README](../README.md)。
+> 本文件是 Android 工程的技术文档，下面的命令都在当前目录（`android/`）下执行。
 
 给 [同文输入法（trime）](https://github.com/osfans/trime) 主题用的独立编辑器。改主题文件里的样式、配色、布局、动作、工具条和候选窗，改动直接写回同一份 `trime.yaml`。
 
