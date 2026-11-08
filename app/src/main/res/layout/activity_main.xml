@@ -84,6 +84,23 @@
                             android:textColor="?attr/ui_ink_2"
                             android:textSize="10sp" />
 
+                        <!-- N-7：皮肤切换必须是一眼能看见的一级入口。N-3 把 ⋯ 去掉后
+                             它只剩 dock 长按，用户会以为「不能切皮肤」。 -->
+                        <TextView
+                            android:id="@+id/heroAppearance"
+                            android:layout_width="wrap_content"
+                            android:layout_height="26dp"
+                            android:background="@drawable/bg_badge"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingStart="11dp"
+                            android:paddingEnd="11dp"
+                            android:singleLine="true"
+                            android:text="@string/hero_appearance"
+                            android:textColor="?attr/ui_on_primary"
+                            android:textSize="10sp" />
+
                         <TextView
                             android:id="@+id/heroMenu"
                             android:visibility="gone"

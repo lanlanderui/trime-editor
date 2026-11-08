@@ -90,6 +90,10 @@ class MainActivity : EditorActivity() {
         binding.themes.layoutManager = LinearLayoutManager(this)
         binding.themes.adapter = adapter
         binding.changeDir.setOnClickListener { chooseDirectory() }
+        // N-7：切皮肤是常用动作，放在英雄区一眼可见处；dock 长按里保留一份备用。
+        binding.heroAppearance.setOnClickListener {
+            startActivity(Intent(this, AppearanceActivity::class.java))
+        }
         // N-1：dock 换成设计稿的四项主题管理动作。
         binding.dockNew.setOnClickListener { promptNewTheme() }
         binding.dockSwitch.setOnClickListener { showSwitchDialog() }
