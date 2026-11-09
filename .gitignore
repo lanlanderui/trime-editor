@@ -14,3 +14,6 @@ keystore.properties
 keystore/
 dist/
 .kotlin/
+
+# 本机工作日志（含设备信息），不进公开仓库
+.workbuddy/
