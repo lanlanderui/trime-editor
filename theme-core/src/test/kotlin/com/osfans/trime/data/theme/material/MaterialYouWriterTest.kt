@@ -93,32 +93,6 @@ class MaterialYouWriterTest :
                 }
             }
         }
-
-        Given("挑「用户当下能看见」的方案") {
-            // 输入法默认方案是 default，只写 material_you 时按完快捷键看不到变化，
-            // 所以生成后要同步一份到 default。这里钉住挑 id 的规则。
-            Then("有 default 就选它，哪怕它不是第一个") {
-                val source =
-                    "preset_color_schemes:\n" +
-                        "  black_yellow:\n    back_color: 0x000000\n" +
-                        "  default:\n    back_color: 0x111111\n"
-                withTheme(source) { file ->
-                    MaterialYouWriter.defaultTargetId(file) shouldBe "default"
-                }
-            }
-
-            Then("没有 default 就退到配色段的第一个") {
-                withTheme("preset_color_schemes:\n  only_one:\n    back_color: 0x222222\n") { file ->
-                    MaterialYouWriter.defaultTargetId(file) shouldBe "only_one"
-                }
-            }
-
-            Then("没有配色段就返回 null，调用方跳过同步") {
-                withTheme("config_version: \"3.0\"\nname: t\nstyle: {}\n") { file ->
-                    MaterialYouWriter.defaultTargetId(file) shouldBe null
-                }
-            }
-        }
     })
 
 private const val SEED = 0xFF4285F4.toInt()

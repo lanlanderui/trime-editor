@@ -23,9 +23,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.osfans.trime.data.theme.ColorLiteral
+import com.osfans.trime.data.theme.ThemeSchemeWriter
+import com.osfans.trime.data.theme.ThemeStyleWriter
+import com.osfans.trime.data.theme.ThemeTextFile
+import com.osfans.trime.data.theme.material.MaterialYouWriter
 import com.trime.editor.databinding.ActivityMainBinding
 import com.trime.editor.ui.AppearanceActivity
 import com.trime.editor.ui.EditorActivity
+import com.trime.editor.ui.color.MaterialYouDialog
 import com.trime.editor.ui.skin.UiMode
 import com.trime.editor.workbench.DirectoryPickerDialog
 import com.trime.editor.workbench.StorageAccess
@@ -37,6 +43,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * The workbench: which directory the editor works in, and what is in it.
@@ -101,6 +108,7 @@ class MainActivity : EditorActivity() {
         binding.builtinCard.setOnClickListener {
             promptCreate(getString(R.string.builtin_default_name), R.string.builtin_title)
         }
+        binding.materialCard.setOnClickListener { showMaterialYou() }
         loadBuiltinMeta()
         binding.dockSwitch.setOnClickListener { showSwitchDialog() }
         binding.dockImport.setOnClickListener { importLauncher.launch(arrayOf("*/*")) }
@@ -448,6 +456,59 @@ class MainActivity : EditorActivity() {
     private fun showList() {
         binding.themes.visibility = View.VISIBLE
         binding.placeholder.visibility = View.GONE
+    }
+
+    /**
+     * 动态配色：把「同文动态配色」那套交互搬到工作台。
+     *
+     * 来源二选一（系统壁纸 / 自选主色），先看两行色板预览，确认后只新增/替换
+     * `material_you` 与 `material_you_dark` 两套方案——**不动**主题里任何已有方案，
+     * 也不改 `default`。写完提示写了哪两套，配色页里能立刻看到。
+     */
+    private fun showMaterialYou() {
+        val hero = currentHero
+        val file = hero?.let { ThemeStyleWriter.editableSourceFile(it.id) }
+        if (file == null) {
+            Toast.makeText(this, R.string.material_you_no_file, Toast.LENGTH_SHORT).show()
+            return
+        }
+        MaterialYouDialog.show(this, accentSeed(file)) { generated ->
+            lifecycleScope.launch {
+                val result =
+                    withContext(Dispatchers.IO) {
+                        MaterialYouWriter.write(
+                            file = file,
+                            colors = generated.colors,
+                            lightName = getString(R.string.material_you_light_name),
+                            darkName = getString(R.string.material_you_dark_name),
+                        )
+                    }
+                Toast.makeText(
+                    this@MainActivity,
+                    if (result.outcome == ThemeTextFile.WriteOutcome.WRITTEN) {
+                        R.string.material_you_written
+                    } else {
+                        R.string.write_failed
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+                refresh()
+            }
+        }
+    }
+
+    /** 对话框的起始色：优先用已经生成过的那套，其次主题的默认方案。 */
+    private fun accentSeed(file: File): Int {
+        val scheme =
+            ThemeSchemeWriter.readScheme(file, MaterialYouWriter.LIGHT_ID)
+                .ifEmpty { ThemeSchemeWriter.readScheme(file, "default") }
+        val keys = listOf("text_color", "hilited_text_color", "on_key_back_color", "back_color")
+        return keys.firstNotNullOfOrNull { key -> ColorLiteral.parse(scheme[key]) } ?: FALLBACK_SEED
+    }
+
+    private companion object {
+        /** 主题里一个可解析的颜色都没有时的起点（Material 3 默认紫）。 */
+        const val FALLBACK_SEED = 0xFF6750A4.toInt()
     }
 
     private fun showPlaceholder(

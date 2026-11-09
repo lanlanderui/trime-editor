@@ -14,7 +14,6 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ThemeDirectory
 import com.osfans.trime.data.theme.ThemeFilesManager
-import com.osfans.trime.data.theme.ThemeSchemeWriter
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.ThemeTextFile
 import com.osfans.trime.data.theme.material.MaterialYouStore
@@ -125,29 +124,12 @@ open class QuickApplyActivity : QuickColorActivity() {
 
         val result =
             withContext(Dispatchers.IO) {
-                val written =
-                    MaterialYouWriter.write(
-                        file = file,
-                        colors = colors,
-                        lightName = getString(R.string.material_you_light_name),
-                        darkName = getString(R.string.material_you_dark_name),
-                    )
-                if (written.outcome == ThemeTextFile.WriteOutcome.WRITTEN) {
-                    // 只写 material_you 两套的话，输入法还在用 default——按完看不到
-                    // 任何变化。把浅色那套同步进当前默认方案（保留 name/author 与
-                    // 注释，只覆盖颜色键），默认配置下按完就生效。
-                    MaterialYouWriter.defaultTargetId(file)
-                        ?.takeIf { it != MaterialYouWriter.LIGHT_ID && it != MaterialYouWriter.DARK_ID }
-                        ?.let { target ->
-                            ThemeSchemeWriter.setSchemesChecked(
-                                file = file,
-                                schemes = mapOf(target to colors.light),
-                                create = false,
-                                rewrite = false,
-                            )
-                        }
-                }
-                written
+                MaterialYouWriter.write(
+                    file = file,
+                    colors = colors,
+                    lightName = getString(R.string.material_you_light_name),
+                    darkName = getString(R.string.material_you_dark_name),
+                )
             }
         return when (result.outcome) {
             ThemeTextFile.WriteOutcome.WRITTEN -> {

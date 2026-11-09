@@ -404,3 +404,22 @@ assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装
 > 注：trime3（同文测试3）的 `TrimeInputMethodService.refreshThemeIfChanged()`
 > 确实做了 `onStartInput` / `onStartInputView` / `onWindowShown` 三处复核，
 > 但该分支已停用，后续只针对原版输入法，所以不能作为方案依赖。
+
+## 20. 动态配色按参考 App 重做：只新增 material_you，不碰 default（2026-11-09 深夜）
+
+用户明确：**不是写 default**，而是照 `D:/Desktop/Trime_color_scheme`（同文动态配色）
+的做法在方案里**新增 material_you**；并说编辑器里的动态配色太难用。
+
+- **撤销 §19 的「同步 default」**：`QuickApplyActivity` 回到只写两套，
+  `default` 一个字节不动；`MaterialYouWriter.defaultTargetId` 及对应单测一并删除。
+- 参考 App 的核心交互编辑器其实早就有了——`MaterialYouDialog`：来源二选一
+  （系统壁纸 / 指定颜色）+ 颜色选择器 + 浅/深两行色板预览 + 生成 + 收藏。
+  问题是入口藏在配色页的 ⋯ 菜单里。
+- **新增工作台「动态配色」卡片**：40dp 色块 + 标题 + 说明 + 「生成」胶囊，
+  点开直接弹 `MaterialYouDialog`（起始色取现有 `material_you` 的主色）；
+  确认后 `MaterialYouWriter.write` 写两套，toast「已生成 Material You 明暗两套」。
+- 真机（原版 `com.osfans.trime` 3.3.14）：卡片显示「动态配色 / 系统壁纸或自选主色 ·
+  生成 Material You 两套」；对话框含「系统壁纸 / 指定颜色 / 浅色预览 / 深色预览 /
+  生成明暗两套」；点生成后 `.revision` 28 → 31，`material_you` / `material_you_dark`
+  两段在，整份文件 diff 为 0（同一壁纸幂等），**default 未被触碰**。
+- 参考 App 的 `com.osfans.trime.deploy` 广播保留（原版未注册接收器，发了无害）。

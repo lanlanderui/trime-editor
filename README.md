@@ -116,10 +116,11 @@ SaveDynamicColor:
 模板由用户手工维护，别用脚本覆盖；`theme-core` 的 `BuiltinTemplateTest` 会
 检查它能被编辑器自己的 YAML 解析器读开、顶层段齐全、色键表完整。
 
-「更新配色」会写两处：`material_you` / `material_you_dark` 两套独立方案，
-以及主题里的**默认方案**（`default`，没有则配色段第一个）——只覆盖颜色键，
-方案名、作者、行内注释都保留。原版输入法没有「主题变了自动重载」，写完需要
-在输入法设置里切一次主题（或切换一次输入法）才会画到键盘上。
+「更新配色」只写 `material_you` / `material_you_dark` 两套方案：已有就整段替换，
+没有就新增，**不动主题里任何其它方案**（包括 `default`）。来源二选一：系统壁纸
+（Android 12+）或自选主色；工作台的「动态配色」卡片会先弹对话框，能看浅/深两行
+色板预览再生成。原版输入法没有「主题变了自动重载」，写完需要在输入法设置里
+切一次主题（或切换一次输入法）才会画到键盘上。
 
 模板里的 `DynamicColor` / `SaveDynamicColor` 两个动作指向
 `com.trime.editor/.QuickApplyActivity` 与 `/.QuickSaveActivity`（正式包）。

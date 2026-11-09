@@ -82,18 +82,6 @@ object MaterialYouWriter {
     )
 
     /**
-     * 主题里「会立刻被看到」的那个方案：优先 `default`，其次配色段的第一个。
-     *
-     * 生成的两套 Material You 是独立方案，输入法默认用的却是 `default`——
-     * 只写这两套时，用户按完快捷键看不到任何变化，只能以为「没生效」。
-     * 拿到这个 id 之后把浅色那套同步进去，默认配置下直接生效。
-     */
-    fun defaultTargetId(file: File): String? {
-        val ids = ThemeSchemeWriter.listSchemes(file).map { it.id }
-        return if ("default" in ids) "default" else ids.firstOrNull()
-    }
-
-    /**
      * What the theme currently holds, or null when it has no complete pair.
      *
      * A half-written pair — one block present, the other missing — is reported

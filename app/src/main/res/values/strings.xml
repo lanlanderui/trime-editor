@@ -304,4 +304,9 @@
     <string name="builtin_save">保存到本地</string>
     <string name="builtin_default_name">模版主题</string>
     <string name="builtin_save_hint">把内置模版复制一份到当前主题目录，只改主题名称，其余参数原样保留。</string>
+    <!-- 动态配色卡片（系统壁纸 / 自选主色 → material_you 两套） -->
+    <string name="material_card_glyph">配</string>
+    <string name="material_card_title">动态配色</string>
+    <string name="material_card_meta">系统壁纸或自选主色 · 生成 Material You 两套</string>
+    <string name="material_card_action">生成</string>
 </resources>
