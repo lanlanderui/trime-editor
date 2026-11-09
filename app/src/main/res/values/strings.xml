@@ -228,7 +228,7 @@
     <string name="quick_save_label">收藏动态配色</string>
     <string name="quick_no_access">请先打开一次同文编辑器，授予「所有文件访问」权限</string>
     <string name="quick_no_theme">先在编辑器里打开一个主题，再从按键调用</string>
-    <string name="quick_apply_done">已按系统壁纸更新 material_you 明暗两套，切到该方案后生效</string>
+    <string name="quick_apply_done">已按系统壁纸更新配色（默认方案 + Material You），重载输入法后生效</string>
     <string name="quick_apply_no_system">这台系统没有提供壁纸配色（需要 Android 12 及以上）</string>
     <string name="quick_apply_failed">写主题失败</string>
     <string name="quick_save_done">已收藏当前动态配色</string>

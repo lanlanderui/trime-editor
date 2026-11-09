@@ -116,6 +116,11 @@ SaveDynamicColor:
 模板由用户手工维护，别用脚本覆盖；`theme-core` 的 `BuiltinTemplateTest` 会
 检查它能被编辑器自己的 YAML 解析器读开、顶层段齐全、色键表完整。
 
+「更新配色」会写两处：`material_you` / `material_you_dark` 两套独立方案，
+以及主题里的**默认方案**（`default`，没有则配色段第一个）——只覆盖颜色键，
+方案名、作者、行内注释都保留。原版输入法没有「主题变了自动重载」，写完需要
+在输入法设置里切一次主题（或切换一次输入法）才会画到键盘上。
+
 模板里的 `DynamicColor` / `SaveDynamicColor` 两个动作指向
 `com.trime.editor/.QuickApplyActivity` 与 `/.QuickSaveActivity`（正式包）。
 装的是调试包时把包名换成 `com.trime.editor.debug`；模板内已写了这行注释。

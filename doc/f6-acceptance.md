@@ -376,3 +376,31 @@ assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装
   这两个键根本不在它里面，按了也不会有任何反应。
 - 改完必须让输入法重载一次：设置里切一次主题，或重启输入法。之后按快捷键才会
   立刻写盘（写盘后同样要重载才看得见配色变化，除非输入法支持 `.revision`）。
+
+## 19. 动态配色直接写入当前方案（2026-11-09 晚）
+
+用户指出：只生成 `material_you` / `material_you_dark` 两套独立方案，输入法当前用的
+是 `default`，所以按完快捷键看不到任何变化——「应该直接写入到方案中」。
+
+**已改**：`QuickApplyActivity` 写完两套 Material You 之后，把浅色那套再同步进
+主题里的「默认方案」（`default`，没有则配色段第一个），只覆盖颜色键，
+`name` / `author` / 行内注释全部保留（`setSchemesChecked(rewrite = false)`）。
+`MaterialYouWriter.defaultTargetId()` 负责挑 id，`MaterialYouWriterTest` 钉住
+「优先 default、否则第一个、无配色段返回 null」。
+
+**实测（原版 `com.osfans.trime` 3.3.14）**：触发前
+`default.back_color = 0xFFEEEEEE`（模板灰），触发后 `0xfefbff`（壁纸浅色），
+`name: 模版配色`、`author`、`# 键盘与候选栏的底色` 注释都在，`.revision` 25 → 28。
+
+**另照「同文动态配色」App 的做法补了一步**：写盘后向 `com.osfans.trime` /
+`com.osfans.trime03`（含 debug 包）发 `com.osfans.trime.deploy` 广播。参考 App
+`QuickApplyActivity.requestTrimeDeploy()` 用的就是这个约定。
+
+**原版输入法的硬限制**：3.3.14 没有注册这个广播，也没有「主题文件变了自动重载」
+的逻辑（文件时间戳在 FUSE 上不可信，也没有 `.revision` 复核）。所以写完盘，
+输入法进程仍用内存里的旧主题，**必须手动重载一次**——在输入法设置里切一次主题
+（或切换一次输入法让它重启），之后新配色才会画到键盘上。
+
+> 注：trime3（同文测试3）的 `TrimeInputMethodService.refreshThemeIfChanged()`
+> 确实做了 `onStartInput` / `onStartInputView` / `onWindowShown` 三处复核，
+> 但该分支已停用，后续只针对原版输入法，所以不能作为方案依赖。

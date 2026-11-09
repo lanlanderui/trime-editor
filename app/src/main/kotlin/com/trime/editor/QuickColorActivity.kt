@@ -6,6 +6,7 @@
 
 package com.trime.editor
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
 import android.widget.Toast
@@ -13,6 +14,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.data.theme.ThemeDirectory
 import com.osfans.trime.data.theme.ThemeFilesManager
+import com.osfans.trime.data.theme.ThemeSchemeWriter
 import com.osfans.trime.data.theme.ThemeStyleWriter
 import com.osfans.trime.data.theme.ThemeTextFile
 import com.osfans.trime.data.theme.material.MaterialYouStore
@@ -123,17 +125,62 @@ open class QuickApplyActivity : QuickColorActivity() {
 
         val result =
             withContext(Dispatchers.IO) {
-                MaterialYouWriter.write(
-                    file = file,
-                    colors = colors,
-                    lightName = getString(R.string.material_you_light_name),
-                    darkName = getString(R.string.material_you_dark_name),
-                )
+                val written =
+                    MaterialYouWriter.write(
+                        file = file,
+                        colors = colors,
+                        lightName = getString(R.string.material_you_light_name),
+                        darkName = getString(R.string.material_you_dark_name),
+                    )
+                if (written.outcome == ThemeTextFile.WriteOutcome.WRITTEN) {
+                    // 只写 material_you 两套的话，输入法还在用 default——按完看不到
+                    // 任何变化。把浅色那套同步进当前默认方案（保留 name/author 与
+                    // 注释，只覆盖颜色键），默认配置下按完就生效。
+                    MaterialYouWriter.defaultTargetId(file)
+                        ?.takeIf { it != MaterialYouWriter.LIGHT_ID && it != MaterialYouWriter.DARK_ID }
+                        ?.let { target ->
+                            ThemeSchemeWriter.setSchemesChecked(
+                                file = file,
+                                schemes = mapOf(target to colors.light),
+                                create = false,
+                                rewrite = false,
+                            )
+                        }
+                }
+                written
             }
         return when (result.outcome) {
-            ThemeTextFile.WriteOutcome.WRITTEN -> R.string.quick_apply_done
+            ThemeTextFile.WriteOutcome.WRITTEN -> {
+                // 参考「同文动态配色」的做法：写完请输入法重新部署，省掉手动切主题。
+                // 目前原版 3.3.14 没有注册这个广播，发了也无害；支持它的构建会立刻刷新。
+                requestImeDeploy()
+                R.string.quick_apply_done
+            }
+
             else -> R.string.quick_apply_failed
         }
+    }
+
+    /**
+     * 通知输入法重新部署主题。
+     *
+     * 用广播而不是重启进程：输入法自己决定怎么刷新（trime03 的
+     * `ThemeManager.reloadIfStale()` 走的是同一条复核路径）。
+     */
+    private fun requestImeDeploy() {
+        listOf(
+            "com.osfans.trime",
+            "com.osfans.trime.debug",
+            "com.osfans.trime03",
+            "com.osfans.trime03.debug",
+        ).forEach { pkg ->
+            runCatching { sendBroadcast(Intent(DEPLOY_ACTION).setPackage(pkg)) }
+        }
+    }
+
+    private companion object {
+        /** 与「同文动态配色」App、trime03 约定一致的部署广播。 */
+        const val DEPLOY_ACTION = "com.osfans.trime.deploy"
     }
 }
 
