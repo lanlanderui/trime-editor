@@ -423,3 +423,32 @@ assembleDebug / typography 3-of-3 全绿；`0.4.0` release 重打并覆盖安装
   生成明暗两套」；点生成后 `.revision` 28 → 31，`material_you` / `material_you_dark`
   两段在，整份文件 diff 为 0（同一壁纸幂等），**default 未被触碰**。
 - 参考 App 的 `com.osfans.trime.deploy` 广播保留（原版未注册接收器，发了无害）。
+
+## 21. 0.4.1 发布到 GitHub（2026-11-10）
+
+- **独立新仓**：<https://github.com/lanlanderui/trime-editor>（public）。
+  没有推到已有的 `trime-theme-studio`——那个仓库根目录是 Web 编辑器、
+  Android 工程在 `android/` 子目录，两边历史也不同，混推会冲掉结构。
+- **发布物**：
+  - 分支 `main` @ `3f1fbce`，tag `v0.4.0` / `v0.4.1`（`v0.4.1` 解引用即 `3f1fbce`）。
+  - Release <https://github.com/lanlanderui/trime-editor/releases/tag/v0.4.1>，
+    非 draft、非 prerelease，body 取 `doc/release-notes-v0.4.1.md`。
+  - 附件 `TrimeEditor-0.4.1.apk`（6,210,377 B，签名 `CN=Trime Editor`，
+    SHA-256 `8a7356b846822a8c4277080376ff0dbb49c304727c28f4119ab4798904a140f2`），
+    另附 `trime-editor-0.4.1-src.zip`（2,334,397 B）。
+- **远端内容校验**：tree 456 项、未截断；5 个模块齐全；`README.md` 与发布说明在；
+  `.workbuddy/`、keystore、`local.properties`、`dist/`、`.tmp/` 均未入库。
+- **两个环境坑，记下来**：
+  1. `winget install GitHub.cli` 卡在 `InternetOpenUrl() failed. 0x80072efd`——
+     winget 下载 MSI 的出口不通。改用 `https://gh-proxy.com/https://github.com/...`
+     拉 portable zip（15,197,187 B / 41 s），解压到
+     `%LOCALAPPDATA%\GitHubCLI`，把 `bin` 加进用户 PATH 即装好 gh 2.103.3。
+  2. `git push` 走环境里的 `127.0.0.1:55624` 代理，间歇性对 CONNECT 返回 502，
+     大包会被掐断（`Recv failure` / `schannel: server closed abruptly`）。
+     `-c http.postBuffer=524288000 -c http.version=HTTP/1.1` 一次即通。
+- **gh 登录态**：用本机已有的 GitHub PAT（`gist, repo, workflow`）写入
+  `%APPDATA%\GitHub CLI\hosts.yml`。`gh auth login --with-token` 会因缺
+  `read:org` 拒绝，但直接写配置可用；只影响组织相关命令，不影响建仓 / release。
+- **附件名坑**：GitHub release 的 asset `name` 会剥掉非 ASCII 字符，
+  `gh release create` 传中文名会变成 `-0.4.1.apk`。正解是 ASCII `name` +
+  中文 `label`（`PATCH /releases/assets/{id}`），发布说明按 ASCII 名写安装命令。

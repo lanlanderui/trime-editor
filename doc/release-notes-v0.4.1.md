@@ -32,7 +32,8 @@
   与 `/.QuickSaveActivity`，调试包换成 `com.trime.editor.debug`。
 
 ## 安装
-- `adb install -r 同文编辑器-0.4.1.apk`，或直接点击安装。
+- 发布页附件为 `TrimeEditor-0.4.1.apk`（页面显示名「同文编辑器-0.4.1.apk」）：
+  `adb install -r TrimeEditor-0.4.1.apk`，或直接点击安装。
 - 与 0.4.0 同签名（`CN=Trime Editor`），可覆盖升级。
 - 首次使用快捷键需要「所有文件访问」权限，按一下会自动跳到系统授权页。
 
